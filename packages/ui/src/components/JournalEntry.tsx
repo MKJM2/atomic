@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import React, { useRef, useEffect } from 'react';
 import type { Entry } from '@twoline/core';
 
 interface JournalEntryProps {
@@ -18,13 +18,20 @@ export function JournalEntry({ entry, isActive, isSaving, onSave }: JournalEntry
     }
   }, [entry.body]);
 
-  function handleInput(e: React.FormEvent<HTMLDivElement>) {
-    // For now, saving happens on blur
+  function handleInput() {
+    // We can track local changes here if needed
   }
 
   function handleBlur() {
     if (editorRef.current) {
       onSave(editorRef.current.innerText);
+    }
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      editorRef.current?.blur(); // Triggers handleBlur -> onSave
     }
   }
 
@@ -61,6 +68,7 @@ export function JournalEntry({ entry, isActive, isSaving, onSave }: JournalEntry
         contentEditable={isActive && !isSaving}
         onInput={handleInput}
         onBlur={handleBlur}
+        onKeyDown={handleKeyDown}
         data-placeholder={isActive ? 'Two sentences about today.' : ''}
         style={{
           lineHeight: 1.7,

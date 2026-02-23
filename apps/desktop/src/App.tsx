@@ -63,15 +63,20 @@ export default function App() {
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      e.preventDefault();
+      // Don't intercept if user is typing
+      if (e.target instanceof HTMLDivElement && e.target.isContentEditable) {
+        return;
+      }
+
       let newIndex = activeIndex;
       if (e.key === 'j' || e.key === 'ArrowDown') {
+        e.preventDefault();
         newIndex = Math.min(activeIndex + 1, entries.length - 1);
       } else if (e.key === 'k' || e.key === 'ArrowUp') {
+        e.preventDefault();
         newIndex = Math.max(activeIndex - 1, 0);
       }
       if (newIndex !== activeIndex) {
-        // setActiveIndex(newIndex); // The observer will handle this
         scrollToActive(newIndex);
       }
     }
