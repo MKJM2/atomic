@@ -1,0 +1,13 @@
+{
+  "name": "twoline",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev:desktop": "pnpm --filter @twoline/desktop dev",
+    "build:desktop": "pnpm --filter @twoline/desktop build"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
+}
