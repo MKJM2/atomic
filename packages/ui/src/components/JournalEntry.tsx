@@ -52,19 +52,12 @@ export function JournalEntry({
     return PLACEHOLDERS[Math.floor(Math.random() * PLACEHOLDERS.length)];
   }, [placeholderIndex]);
 
+  // Keep local value in sync with prop, but only if not focused
   useEffect(() => {
-    setVal(entry.body);
-  }, [entry.body]);
-
-  // Autofocus logic
-  useEffect(() => {
-    if (isActive && !isSaving && textareaRef.current && layoutMode === 'minimalist') {
-      const textarea = textareaRef.current;
-      textarea.focus();
-      const len = textarea.value.length;
-      textarea.setSelectionRange(len, len);
+    if (!isFocused) {
+      setVal(entry.body);
     }
-  }, [isActive, isSaving, layoutMode]);
+  }, [entry.body, isFocused]);
 
   // Auto-resize logic
   useEffect(() => {
@@ -81,7 +74,10 @@ export function JournalEntry({
 
   function handleBlur() {
     setIsFocused(false);
-    onSave(val);
+    // Only save if the content has actually changed
+    if (val !== entry.body) {
+      onSave(val);
+    }
   }
 
   function handleFocus() {
