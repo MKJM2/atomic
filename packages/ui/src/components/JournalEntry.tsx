@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
 import type { Entry } from '@twoline/core';
+import type { LayoutMode } from './SettingsPage';
 
 export const PLACEHOLDERS = [
   "I watched the shadow of a cloud cross the grass.",
@@ -23,7 +24,7 @@ interface JournalEntryProps {
   entry: Entry;
   isActive: boolean;
   isSaving: boolean;
-  entriesPerPage: number;
+  layoutMode: LayoutMode;
   spacing: number;
   onSave: (body: string) => void;
   onMouseEnter?: () => void;
@@ -34,7 +35,7 @@ export function JournalEntry({
   entry,
   isActive,
   isSaving,
-  entriesPerPage,
+  layoutMode,
   spacing,
   onSave,
   onMouseEnter,
@@ -55,6 +56,16 @@ export function JournalEntry({
     setVal(entry.body);
   }, [entry.body]);
 
+  // Autofocus logic
+  useEffect(() => {
+    if (isActive && !isSaving && textareaRef.current && layoutMode === 'minimalist') {
+      const textarea = textareaRef.current;
+      textarea.focus();
+      const len = textarea.value.length;
+      textarea.setSelectionRange(len, len);
+    }
+  }, [isActive, isSaving, layoutMode]);
+
   // Auto-resize logic
   useEffect(() => {
     const textarea = textareaRef.current;
@@ -62,7 +73,7 @@ export function JournalEntry({
       textarea.style.height = 'auto';
       textarea.style.height = textarea.scrollHeight + 'px';
     }
-  }, [val, entriesPerPage]);
+  }, [val, layoutMode]);
 
   function handleChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
     setVal(e.target.value);
@@ -84,8 +95,13 @@ export function JournalEntry({
     }
   }
 
-  const minHeight = 100 / entriesPerPage;
-  const paddingY = entriesPerPage === 1 ? 0 : spacing * 1.5; // Increased multiplier for more visible impact
+  const minHeights = {
+    minimalist: 100,
+    default: 40,
+    dense: 20
+  };
+  const minHeight = minHeights[layoutMode];
+  const paddingY = layoutMode === 'minimalist' ? 0 : spacing * 1.5;
 
   return (
     <section className="entry-section" onMouseEnter={onMouseEnter}>
@@ -100,7 +116,7 @@ export function JournalEntry({
           box-sizing: border-box;
           padding-top: ${paddingY}rem;
           padding-bottom: ${paddingY}rem;
-          transition: padding 0.2s ease-out;
+          transition: padding 0.2s ease-out, min-height 0.3s ease-in-out;
         }
         .entry-date {
           margin: 0;

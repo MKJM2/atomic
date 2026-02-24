@@ -1,25 +1,31 @@
 import React from 'react';
 
+export type LayoutMode = 'minimalist' | 'default' | 'dense';
+
 interface SettingsPageProps {
   isDarkMode: boolean;
   onToggleDarkMode: (enabled: boolean) => void;
-  entriesPerPage: number;
-  onEntriesPerPageChange: (value: number) => void;
+  layoutMode: LayoutMode;
+  onLayoutModeChange: (mode: LayoutMode) => void;
   spacing: number;
   onSpacingChange: (value: number) => void;
+  isDeveloperMode: boolean;
+  onToggleDeveloperMode: (enabled: boolean) => void;
   onClose: () => void;
 }
 
 export function SettingsPage({ 
   isDarkMode, 
   onToggleDarkMode, 
-  entriesPerPage, 
-  onEntriesPerPageChange, 
+  layoutMode, 
+  onLayoutModeChange, 
   spacing,
   onSpacingChange,
+  isDeveloperMode,
+  onToggleDeveloperMode,
   onClose 
 }: SettingsPageProps) {
-  const isSpacingDisabled = entriesPerPage === 1;
+  const isSpacingDisabled = layoutMode === 'minimalist';
 
   return (
     <div className="settings-overlay" onClick={onClose}>
@@ -41,7 +47,7 @@ export function SettingsPage({
         }
         .settings-modal {
           width: 100%;
-          max-width: 32rem;
+          max-width: 40rem;
           background: white;
           border-radius: 1.5rem;
           padding: 2.5rem;
@@ -60,7 +66,7 @@ export function SettingsPage({
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 2.5rem;
+          margin-bottom: 2rem;
         }
         .settings-title {
           font-size: 1.25rem;
@@ -82,22 +88,37 @@ export function SettingsPage({
         .dark .close-button:hover {
           color: #f3f4f6;
         }
+        .settings-section {
+          margin-bottom: 2.5rem;
+        }
+        .settings-section:last-child {
+          margin-bottom: 0;
+        }
+        .settings-section-title {
+          font-size: 0.75rem;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          color: #9ca3af;
+          margin-bottom: 1rem;
+          font-weight: 600;
+          border-bottom: 1px solid #f3f4f6;
+          padding-bottom: 0.5rem;
+        }
+        .dark .settings-section-title {
+          border-bottom-color: #242930;
+        }
         .settings-list {
           display: flex;
           flex-direction: column;
-          gap: 1.5rem;
+          gap: 0.25rem;
         }
         .settings-item {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 1rem;
-          border-radius: 1rem;
-          background: #f9fafb;
-          transition: background 0.2s, opacity 0.2s;
-        }
-        .dark .settings-item {
-          background: #242930;
+          padding: 0.75rem 0;
+          background: none;
+          transition: opacity 0.2s;
         }
         .settings-item.disabled {
           opacity: 0.4;
@@ -125,6 +146,10 @@ export function SettingsPage({
           transition: background-color 0.2s;
           background-color: ${isDarkMode ? '#10b981' : '#d1d5db'};
         }
+        /* Color override for different toggles if needed, but keeping it simple for now */
+        .toggle-btn.active-dev {
+           background-color: ${isDeveloperMode ? '#f59e0b' : '#d1d5db'};
+        }
         .toggle-dot {
           display: inline-block;
           height: 1rem;
@@ -132,7 +157,36 @@ export function SettingsPage({
           background-color: white;
           border-radius: 9999px;
           transition: transform 0.2s;
-          transform: ${isDarkMode ? 'translateX(1.5rem)' : 'translateX(0.25rem)'};
+        }
+        .mode-selector {
+          display: flex;
+          background: #f3f4f6;
+          padding: 0.25rem;
+          border-radius: 0.5rem;
+          gap: 0.25rem;
+        }
+        .dark .mode-selector {
+          background: #242930;
+        }
+        .mode-btn {
+          padding: 0.375rem 0.75rem;
+          border-radius: 0.375rem;
+          font-size: 0.8125rem;
+          font-weight: 500;
+          border: none;
+          cursor: pointer;
+          transition: all 0.2s;
+          background: transparent;
+          color: #6b7280;
+        }
+        .mode-btn.active {
+          background: white;
+          color: #111827;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .dark .mode-btn.active {
+          background: #1a1d23;
+          color: #f3f4f6;
         }
         .slider-container {
           display: flex;
@@ -183,55 +237,79 @@ export function SettingsPage({
           </button>
         </header>
 
-        <div className="settings-list">
-          <div className="settings-item">
-            <div className="item-label">
-              <h3>Dark Mode</h3>
-              <p>Adjust the appearance of the application.</p>
+        <div className="settings-section">
+          <h3 className="settings-section-title">Appearance</h3>
+          <div className="settings-list">
+            <div className="settings-item">
+              <div className="item-label">
+                <h3>Dark Mode</h3>
+                <p>Adjust the appearance of the application.</p>
+              </div>
+              <button 
+                onClick={() => onToggleDarkMode(!isDarkMode)} 
+                className="toggle-btn"
+                style={{ backgroundColor: isDarkMode ? '#10b981' : '#d1d5db' }}
+                aria-label="Toggle dark mode"
+              >
+                <span className="toggle-dot" style={{ transform: isDarkMode ? 'translateX(1.5rem)' : 'translateX(0.25rem)' }} />
+              </button>
             </div>
-            <button 
-              onClick={() => onToggleDarkMode(!isDarkMode)} 
-              className="toggle-btn"
-              aria-label="Toggle dark mode"
-            >
-              <span className="toggle-dot" />
-            </button>
-          </div>
 
-          <div className="settings-item">
-            <div className="item-label">
-              <h3>Entries per Page</h3>
-              <p>Number of visible journal entries.</p>
+            <div className="settings-item">
+              <div className="item-label">
+                <h3>Layout Mode</h3>
+                <p>Choose your preferred view style.</p>
+              </div>
+              <div className="mode-selector">
+                {(['minimalist', 'default', 'dense'] as LayoutMode[]).map((mode) => (
+                  <button
+                    key={mode}
+                    onClick={() => onLayoutModeChange(mode)}
+                    className={`mode-btn ${layoutMode === mode ? 'active' : ''}`}
+                  >
+                    {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="slider-container">
-              <span className="slider-value">{entriesPerPage}</span>
-              <input 
-                type="range" 
-                min="1" 
-                max="5" 
-                value={entriesPerPage} 
-                onChange={(e) => onEntriesPerPageChange(parseInt(e.target.value, 10))}
-                className="slider"
-              />
+
+            <div className={`settings-item ${isSpacingDisabled ? 'disabled' : ''}`}>
+              <div className="item-label">
+                <h3>Vertical Spacing</h3>
+                <p>Distance between journal entries.</p>
+              </div>
+              <div className="slider-container">
+                <span className="slider-value">{spacing}</span>
+                <input 
+                  type="range" 
+                  min="0" 
+                  max="10" 
+                  value={spacing} 
+                  disabled={isSpacingDisabled}
+                  onChange={(e) => onSpacingChange(parseInt(e.target.value, 10))}
+                  className="slider"
+                />
+              </div>
             </div>
           </div>
+        </div>
 
-          <div className={`settings-item ${isSpacingDisabled ? 'disabled' : ''}`}>
-            <div className="item-label">
-              <h3>Vertical Spacing</h3>
-              <p>Distance between journal entries.</p>
-            </div>
-            <div className="slider-container">
-              <span className="slider-value">{spacing}</span>
-              <input 
-                type="range" 
-                min="0" 
-                max="10" 
-                value={spacing} 
-                disabled={isSpacingDisabled}
-                onChange={(e) => onSpacingChange(parseInt(e.target.value, 10))}
-                className="slider"
-              />
+        <div className="settings-section">
+          <h3 className="settings-section-title">Advanced</h3>
+          <div className="settings-list">
+            <div className="settings-item">
+              <div className="item-label">
+                <h3>Developer Mode</h3>
+                <p>Enable additional debugging tools and logs.</p>
+              </div>
+              <button 
+                onClick={() => onToggleDeveloperMode(!isDeveloperMode)} 
+                className="toggle-btn"
+                style={{ backgroundColor: isDeveloperMode ? '#f59e0b' : '#d1d5db' }}
+                aria-label="Toggle developer mode"
+              >
+                <span className="toggle-dot" style={{ transform: isDeveloperMode ? 'translateX(1.5rem)' : 'translateX(0.25rem)' }} />
+              </button>
             </div>
           </div>
         </div>

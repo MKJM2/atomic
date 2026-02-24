@@ -1,13 +1,14 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
-import { JournalEntry, SettingsPage, PLACEHOLDERS } from '@twoline/ui';
+import { JournalEntry, SettingsPage, PLACEHOLDERS, type LayoutMode } from '@twoline/ui';
 import { upsertEntry, getAllEntries, getAllDates } from '@twoline/db';
 import { newEntry, todayLocalDate, type Entry } from '@twoline/core';
 
 export default function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [entriesPerPage, setEntriesPerPage] = useState(1);
+  const [layoutMode, setLayoutMode] = useState<LayoutMode>('minimalist');
   const [spacing, setSpacing] = useState(4);
+  const [isDeveloperMode, setIsDeveloperMode] = useState(import.meta.env.DEV);
   const [entries, setEntries] = useState<Entry[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
@@ -94,9 +95,9 @@ export default function App() {
     load();
   }, [scrollToActive]);
 
-  // Scroll detection via IntersectionObserver (Only for 1 entry per page)
+  // Scroll detection via IntersectionObserver (Only for minimalist mode)
   useEffect(() => {
-    if (entriesPerPage !== 1) return;
+    if (layoutMode !== 'minimalist') return;
 
     const observer = new IntersectionObserver(
       (observedEntries) => {
@@ -119,7 +120,7 @@ export default function App() {
         if (ref) observer.unobserve(ref);
       });
     };
-  }, [entries, entriesPerPage]);
+  }, [entries, layoutMode]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -147,14 +148,14 @@ export default function App() {
       }
       if (newIndex !== activeIndex) {
         setActiveIndex(newIndex);
-        if (entriesPerPage === 1) {
+        if (layoutMode === 'minimalist') {
           scrollToActive(newIndex);
         }
       }
     }
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeIndex, entries.length, scrollToActive, entriesPerPage, isSettingsOpen]);
+  }, [activeIndex, entries.length, scrollToActive, layoutMode, isSettingsOpen]);
 
   async function handleSave(index: number, body: string) {
     setIsSaving(true);
@@ -179,7 +180,7 @@ export default function App() {
     }
   }
 
-  const isSnapEnabled = entriesPerPage === 1;
+  const isSnapEnabled = layoutMode === 'minimalist';
 
   return (
     <div
@@ -221,11 +222,11 @@ export default function App() {
               entry={entry}
               isActive={index === activeIndex}
               isSaving={isSaving}
-              entriesPerPage={entriesPerPage}
+              layoutMode={layoutMode}
               spacing={spacing}
               onSave={(body) => handleSave(index, body)}
               onMouseEnter={() => {
-                if (entriesPerPage > 1) {
+                if (layoutMode !== 'minimalist') {
                   setActiveIndex(index);
                 }
               }}
@@ -239,10 +240,12 @@ export default function App() {
         <SettingsPage 
           isDarkMode={isDarkMode} 
           onToggleDarkMode={setIsDarkMode} 
-          entriesPerPage={entriesPerPage}
-          onEntriesPerPageChange={setEntriesPerPage}
+          layoutMode={layoutMode}
+          onLayoutModeChange={setLayoutMode}
           spacing={spacing}
           onSpacingChange={setSpacing}
+          isDeveloperMode={isDeveloperMode}
+          onToggleDeveloperMode={setIsDeveloperMode}
           onClose={() => setIsSettingsOpen(false)} 
         />
       )}
