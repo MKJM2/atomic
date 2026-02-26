@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useMemo } from 'react';
+import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react';
 import type { Entry } from '@twoline/core';
 import type { LayoutMode } from './SettingsPage';
 
@@ -25,6 +25,7 @@ interface JournalEntryProps {
   isActive: boolean;
   isSaving: boolean;
   layoutMode: LayoutMode;
+  fontSize: number;
   spacing: number;
   onSave: (body: string) => void;
   onMouseEnter?: () => void;
@@ -36,6 +37,7 @@ export function JournalEntry({
   isActive,
   isSaving,
   layoutMode,
+  fontSize,
   spacing,
   onSave,
   onMouseEnter,
@@ -59,22 +61,44 @@ export function JournalEntry({
     }
   }, [entry.body, isFocused]);
 
-  // Auto-resize logic
-  useEffect(() => {
+  const adjustHeight = useCallback(() => {
     const textarea = textareaRef.current;
     if (textarea) {
       textarea.style.height = 'auto';
-      textarea.style.height = textarea.scrollHeight + 'px';
+      
+      // If empty, temporarily use placeholder to measure required height
+      const originalValue = textarea.value;
+      if (!originalValue && placeholder) {
+        textarea.value = placeholder;
+        textarea.style.height = textarea.scrollHeight + 'px';
+        textarea.value = originalValue;
+      } else {
+        textarea.style.height = textarea.scrollHeight + 'px';
+      }
     }
-  }, [val, layoutMode]);
+  }, [placeholder]);
+
+  // Auto-resize logic
+  useEffect(() => {
+    adjustHeight();
+  }, [val, layoutMode, fontSize, adjustHeight]);
+
+  // Handle initial render and layout shifts
+  useEffect(() => {
+    const timeout = setTimeout(adjustHeight, 50);
+    return () => clearTimeout(timeout);
+  }, [adjustHeight]);
 
   function handleChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
-    setVal(e.target.value);
+    const nextVal = e.target.value;
+    const newlineCount = (nextVal.match(/\n/g) || []).length;
+    if (newlineCount <= 6) {
+      setVal(nextVal);
+    }
   }
 
   function handleBlur() {
     setIsFocused(false);
-    // Only save if the content has actually changed
     if (val !== entry.body) {
       onSave(val);
     }
@@ -86,8 +110,11 @@ export function JournalEntry({
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      textareaRef.current?.blur(); // Triggers onSave via handleBlur
+      setTimeout(() => {
+        if (textareaRef.current) {
+          onSave(textareaRef.current.value);
+        }
+      }, 0);
     }
   }
 
@@ -127,8 +154,8 @@ export function JournalEntry({
           border: none;
           padding: 0;
           font-family: inherit;
-          font-size: 1.5rem;
-          transition: color 0.3s;
+          font-size: ${fontSize}px;
+          transition: color 0.3s, font-size 0.2s;
           resize: none;
           overflow: hidden;
           display: block;

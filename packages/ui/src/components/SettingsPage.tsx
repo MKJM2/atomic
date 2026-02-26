@@ -1,31 +1,66 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
 export type LayoutMode = 'minimalist' | 'default' | 'dense';
+export type NotificationType = 'random' | 'custom';
 
 interface SettingsPageProps {
   isDarkMode: boolean;
   onToggleDarkMode: (enabled: boolean) => void;
   layoutMode: LayoutMode;
   onLayoutModeChange: (mode: LayoutMode) => void;
+  fontSize: number;
+  onFontSizeChange: (size: number) => void;
+  onPreviewFontSizeChange: (size: number | null) => void;
   spacing: number;
   onSpacingChange: (value: number) => void;
   isDeveloperMode: boolean;
   onToggleDeveloperMode: (enabled: boolean) => void;
+  notificationType: NotificationType;
+  onNotificationTypeChange: (type: NotificationType) => void;
+  customNotificationMessage: string;
+  onCustomNotificationMessageChange: (msg: string) => void;
+  onTestNotification: () => void;
   onClose: () => void;
 }
+
+const FONT_SIZE_OPTIONS = [12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 48];
 
 export function SettingsPage({ 
   isDarkMode, 
   onToggleDarkMode, 
   layoutMode, 
   onLayoutModeChange, 
+  fontSize,
+  onFontSizeChange,
+  onPreviewFontSizeChange,
   spacing,
   onSpacingChange,
   isDeveloperMode,
   onToggleDeveloperMode,
+  notificationType,
+  onNotificationTypeChange,
+  customNotificationMessage,
+  onCustomNotificationMessageChange,
+  onTestNotification,
   onClose 
 }: SettingsPageProps) {
+  const [isAdjustingFontSize, setIsAdjustingFontSize] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const isSpacingDisabled = layoutMode === 'minimalist';
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+        setIsAdjustingFontSize(false);
+        onPreviewFontSizeChange(null);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [onPreviewFontSizeChange]);
 
   return (
     <div className="settings-overlay" onClick={onClose}>
@@ -53,7 +88,25 @@ export function SettingsPage({
           padding: 2.5rem;
           box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
           animation: slideUp 0.3s ease-out;
+          transition: background-color 0.3s ease-in-out, backdrop-filter 0.3s ease-in-out, opacity 0.3s ease-in-out;
+          position: relative;
         }
+        .settings-modal.adjusting {
+          background: transparent !important;
+          box-shadow: none;
+        }
+
+        /* Fully hide all modal content except the picker */
+        .settings-modal.adjusting .settings-header,
+        .settings-modal.adjusting .settings-section-title,
+        .settings-modal.adjusting .settings-item:not(.font-size-item),
+        .settings-modal.adjusting .font-size-item .item-label,
+        .settings-modal.adjusting .settings-section:not(.appearance-section) {
+          opacity: 0 !important;
+          pointer-events: none;
+          transition: opacity 0.3s;
+        }
+
         @keyframes slideUp {
           from { transform: translateY(20px); opacity: 0; }
           to { transform: translateY(0); opacity: 1; }
@@ -134,6 +187,94 @@ export function SettingsPage({
           color: #6b7280;
           margin: 0;
         }
+        
+        .custom-select {
+          position: relative;
+          min-width: 100px;
+          z-index: 150;
+        }
+
+        .select-trigger {
+          padding: 0.375rem 1rem;
+          background: #f3f4f6;
+          border-radius: 0.5rem;
+          font-size: 0.8125rem;
+          font-weight: 500;
+          color: #111827;
+          cursor: pointer;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 0.5rem;
+          position: relative;
+          z-index: 151;
+          transition: background-color 0.2s;
+        }
+        .settings-modal.adjusting .select-trigger {
+          background: white;
+          box-shadow: 0 0 0 1px rgba(0,0,0,0.05), 0 10px 15px -3px rgba(0,0,0,0.1);
+        }
+        .dark .settings-modal.adjusting .select-trigger {
+          background: #1a1d23;
+          box-shadow: 0 0 0 1px rgba(255,255,255,0.1), 0 10px 15px -3px rgba(0,0,0,0.3);
+        }
+        .dark .select-trigger {
+          background: #242930;
+          color: #f3f4f6;
+        }
+        .select-options {
+          position: absolute;
+          bottom: 100%;
+          right: 0;
+          margin-bottom: 0.5rem;
+          background: white;
+          border-radius: 0.75rem;
+          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+          padding: 0.5rem;
+          display: flex;
+          flex-direction: column;
+          width: 120px;
+          max-height: 240px;
+          overflow-y: auto;
+          z-index: 160;
+          border: 1px solid #f3f4f6;
+        }
+        .dark .select-options {
+          background: #1a1d23;
+          border-color: #242930;
+        }
+        .option-item {
+          padding: 0.5rem 0.75rem;
+          border-radius: 0.375rem;
+          font-size: 0.8125rem;
+          cursor: pointer;
+          transition: all 0.2s;
+          background: transparent;
+          color: #6b7280;
+          border: none;
+          text-align: left;
+          width: 100%;
+        }
+        .dark .option-item {
+          color: #9ca3af;
+        }
+        .option-item:hover {
+          background: #f3f4f6;
+          color: #111827;
+        }
+        .dark .option-item:hover {
+          background: #242930;
+          color: #f3f4f6;
+        }
+        .option-item.active {
+          background: #111827;
+          color: white;
+        }
+        .dark .option-item.active {
+          background: #f3f4f6;
+          color: #111827;
+        }
+
         .toggle-btn {
           position: relative;
           display: inline-flex;
@@ -144,11 +285,7 @@ export function SettingsPage({
           border: none;
           cursor: pointer;
           transition: background-color 0.2s;
-          background-color: ${isDarkMode ? '#10b981' : '#d1d5db'};
-        }
-        /* Color override for different toggles if needed, but keeping it simple for now */
-        .toggle-btn.active-dev {
-           background-color: ${isDeveloperMode ? '#f59e0b' : '#d1d5db'};
+          background-color: #d1d5db;
         }
         .toggle-dot {
           display: inline-block;
@@ -188,6 +325,35 @@ export function SettingsPage({
           background: #1a1d23;
           color: #f3f4f6;
         }
+        .text-input {
+          padding: 0.5rem 0.75rem;
+          background: #f3f4f6;
+          border: 1px solid transparent;
+          border-radius: 0.5rem;
+          font-size: 0.8125rem;
+          color: #111827;
+          width: 100%;
+          max-width: 200px;
+          outline: none;
+          transition: all 0.2s;
+        }
+        .text-input:focus {
+          border-color: #d1d5db;
+          background: white;
+        }
+        .dark .text-input {
+          background: #242930;
+          color: #f3f4f6;
+        }
+        .dark .text-input:focus {
+          border-color: #374151;
+          background: #1a1d23;
+        }
+        .text-input:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
         .slider-container {
           display: flex;
           align-items: center;
@@ -224,9 +390,33 @@ export function SettingsPage({
           text-align: center;
           font-size: 0.9375rem;
         }
+        .action-button {
+          padding: 0.5rem 1rem;
+          background: #f3f4f6;
+          border: none;
+          border-radius: 0.5rem;
+          font-size: 0.8125rem;
+          font-weight: 500;
+          color: #111827;
+          cursor: pointer;
+          transition: background 0.2s;
+        }
+        .action-button:hover {
+          background: #e5e7eb;
+        }
+        .dark .action-button {
+          background: #242930;
+          color: #f3f4f6;
+        }
+        .dark .action-button:hover {
+          background: #374151;
+        }
       `}</style>
       
-      <div className="settings-modal" onClick={(e) => e.stopPropagation()}>
+      <div 
+        className={`settings-modal ${isAdjustingFontSize ? 'adjusting' : ''}`} 
+        onClick={(e) => e.stopPropagation()}
+      >
         <header className="settings-header">
           <h2 className="settings-title">Settings</h2>
           <button onClick={onClose} className="close-button" aria-label="Close settings">
@@ -237,7 +427,7 @@ export function SettingsPage({
           </button>
         </header>
 
-        <div className="settings-section">
+        <div className="settings-section appearance-section">
           <h3 className="settings-section-title">Appearance</h3>
           <div className="settings-list">
             <div className="settings-item">
@@ -253,6 +443,51 @@ export function SettingsPage({
               >
                 <span className="toggle-dot" style={{ transform: isDarkMode ? 'translateX(1.5rem)' : 'translateX(0.25rem)' }} />
               </button>
+            </div>
+
+            <div className="settings-item font-size-item">
+              <div className="item-label">
+                <h3>Font Size</h3>
+                <p>Customize the journal entry text size.</p>
+              </div>
+              
+              <div className="custom-select" ref={dropdownRef}>
+                <div 
+                  className="select-trigger" 
+                  onClick={() => {
+                    const next = !isOpen;
+                    setIsOpen(next);
+                    setIsAdjustingFontSize(next);
+                    if (!next) onPreviewFontSizeChange(null);
+                  }}
+                >
+                  {fontSize}px
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="m6 9 6 6 6-6"/>
+                  </svg>
+                </div>
+                
+                {isOpen && (
+                  <div className="select-options">
+                    {FONT_SIZE_OPTIONS.map(size => (
+                      <button 
+                        key={size}
+                        className={`option-item ${size === fontSize ? 'active' : ''}`}
+                        onMouseEnter={() => onPreviewFontSizeChange(size)}
+                        onMouseLeave={() => onPreviewFontSizeChange(null)}
+                        onClick={() => {
+                          onFontSizeChange(size);
+                          setIsOpen(false);
+                          setIsAdjustingFontSize(false);
+                          onPreviewFontSizeChange(null);
+                        }}
+                      >
+                        {size}px
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="settings-item">
@@ -309,6 +544,49 @@ export function SettingsPage({
                 aria-label="Toggle developer mode"
               >
                 <span className="toggle-dot" style={{ transform: isDeveloperMode ? 'translateX(1.5rem)' : 'translateX(0.25rem)' }} />
+              </button>
+            </div>
+
+            <div className="settings-item">
+              <div className="item-label">
+                <h3>Notification Type</h3>
+                <p>Choose random inspirations or a custom message.</p>
+              </div>
+              <div className="mode-selector">
+                {(['random', 'custom'] as NotificationType[]).map((type) => (
+                  <button
+                    key={type}
+                    onClick={() => onNotificationTypeChange(type)}
+                    className={`mode-btn ${notificationType === type ? 'active' : ''}`}
+                  >
+                    {type.charAt(0).toUpperCase() + type.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className={`settings-item ${notificationType === 'random' ? 'disabled' : ''}`}>
+              <div className="item-label">
+                <h3>Custom Message</h3>
+                <p>Enter your personalized reminder text.</p>
+              </div>
+              <input 
+                type="text"
+                value={customNotificationMessage}
+                onChange={(e) => onCustomNotificationMessageChange(e.target.value)}
+                placeholder="Time to write..."
+                disabled={notificationType === 'random'}
+                className="text-input"
+              />
+            </div>
+
+            <div className="settings-item">
+              <div className="item-label">
+                <h3>System Integration</h3>
+                <p>Test the native notification system.</p>
+              </div>
+              <button onClick={onTestNotification} className="action-button">
+                Test Notification
               </button>
             </div>
           </div>

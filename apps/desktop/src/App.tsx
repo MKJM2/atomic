@@ -1,13 +1,19 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
-import { JournalEntry, SettingsPage, ScrollMinimap, PLACEHOLDERS, type LayoutMode } from '@twoline/ui';
+import { JournalEntry, SettingsPage, ScrollMinimap, PLACEHOLDERS, type LayoutMode, type NotificationType } from '@twoline/ui';
 import { upsertEntry, getAllEntries, getAllDates } from '@twoline/db';
 import { newEntry, todayLocalDate, type Entry } from '@twoline/core';
+import { isPermissionGranted, requestPermission, sendNotification } from '@tauri-apps/plugin-notification';
 
 export default function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [layoutMode, setLayoutMode] = useState<LayoutMode>('minimalist');
+  const [fontSize, setFontSize] = useState(24);
+  const [previewFontSize, setPreviewFontSize] = useState<number | null>(null);
   const [spacing, setSpacing] = useState(4);
+  const [isDeveloperMode, setIsDeveloperMode] = useState(import.meta.env.DEV);
+  const [notificationType, setNotificationType] = useState<NotificationType>('random');
+  const [customNotificationMessage, setCustomNotificationMessage] = useState('Time to write your two sentences for today.');
   const [entries, setEntries] = useState<Entry[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
@@ -19,7 +25,6 @@ export default function App() {
     const indices: number[] = [];
     let lastIndex = -1;
     const count = PLACEHOLDERS.length;
-    // Assume a max of 1000 entries for simplicity
     for (let i = 0; i < 1000; i++) {
       let nextIndex;
       do {
@@ -54,15 +59,15 @@ export default function App() {
       let allEntries = await getAllEntries();
 
       if (allDates.length === 0) {
-        console.log('No entries found, seeding database for the past week...');
+        console.log('No entries found, seeding database...');
         const seedEntries = [
-          { offset: 1, quote: 'A diary is a record of consciousness, a weapon against the sense of dissolution.' }, // Sontag
-          { offset: 2, quote: 'I have a deeply hidden and inarticulate desire for something beyond the daily life.' }, // Woolf
-          { offset: 3, quote: 'I am jealous of those who think more deeply, who write better, who draw better, who ski better, who look better, who live better, who love better than I.' }, // Plath
-          { offset: 4, quote: 'I was cleaning out my room, and when I was wiping the dust from the sofa, I couldn\'t remember whether I had wiped it or not.' }, // Tolstoy
-          { offset: 5, quote: 'Slept, woke, slept, woke, miserable life.' }, // Kafka
-          { offset: 6, quote: 'The personal life deeply lived always expands into truths beyond itself.' }, // Nin
-          { offset: 7, quote: 'I am Defeated all the time; yet to Victory I am born.' }, // Emerson
+          { offset: 1, quote: 'A diary is a record of consciousness, a weapon against the sense of dissolution.' },
+          { offset: 2, quote: 'I have a deeply hidden and inarticulate desire for something beyond the daily life.' },
+          { offset: 3, quote: 'I am jealous of those who think more deeply, who write better, who draw better, who ski better, who look better, who live better, who love better than I.' },
+          { offset: 4, quote: 'I was cleaning out my room, and when I was wiping the dust from the sofa, I couldn\'t remember whether I had wiped it or not.' },
+          { offset: 5, quote: 'Slept, woke, slept, woke, miserable life.' },
+          { offset: 6, quote: 'The personal life deeply lived always expands into truths beyond itself.' },
+          { offset: 7, quote: 'I am Defeated all the time; yet to Victory I am born.' },
         ];
 
         for (const { offset, quote } of seedEntries) {
@@ -89,7 +94,6 @@ export default function App() {
       setEntries(allEntries);
       const todayIndex = allEntries.findIndex(e => e.date === today);
       setActiveIndex(todayIndex);
-      // Wait for layout
       setTimeout(() => scrollToActive(todayIndex), 100);
     }
     load();
@@ -125,7 +129,6 @@ export default function App() {
   // Keyboard navigation
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      // Close settings on Escape
       if (e.key === 'Escape' && isSettingsOpen) {
         setIsSettingsOpen(false);
         return;
@@ -133,6 +136,7 @@ export default function App() {
 
       if (
         e.target instanceof HTMLTextAreaElement ||
+        e.target instanceof HTMLInputElement ||
         (e.target instanceof HTMLDivElement && e.target.isContentEditable)
       ) {
         return;
@@ -180,7 +184,26 @@ export default function App() {
     }
   }
 
+  async function handleTestNotification() {
+    let permissionGranted = await isPermissionGranted();
+    if (!permissionGranted) {
+      const permission = await requestPermission();
+      permissionGranted = permission === 'granted';
+    }
+    if (permissionGranted) {
+      let body = customNotificationMessage;
+      if (notificationType === 'random') {
+        body = PLACEHOLDERS[Math.floor(Math.random() * PLACEHOLDERS.length)];
+      }
+      sendNotification({ 
+        title: 'twoline', 
+        body: body 
+      });
+    }
+  }
+
   const isSnapEnabled = layoutMode === 'minimalist';
+  const effectiveFontSize = previewFontSize ?? fontSize;
 
   return (
     <div
@@ -200,15 +223,10 @@ export default function App() {
         style={{ 
           scrollSnapType: isSnapEnabled ? 'y mandatory' : 'none', 
           overscrollBehavior: isSnapEnabled ? 'none' : 'auto',
-          scrollbarWidth: 'none' /* Hide native scrollbar */
+          scrollbarWidth: 'none'
         }}
       >
-        <style>{`
-          /* Hide chrome scrollbar */
-          .h-full::-webkit-scrollbar {
-            display: none;
-          }
-        `}</style>
+        <style>{`.h-full::-webkit-scrollbar { display: none; }`}</style>
 
         {/* Settings Gear */}
         <button 
@@ -234,12 +252,8 @@ export default function App() {
               entry={entry}
               isActive={index === activeIndex}
               isSaving={isSaving}
-              entriesPerPage={1} // Using 1 here to map to 'minimalist' logic inside if needed, or pass layoutMode logic
-              // Wait, JournalEntry uses layoutMode now. Let's pass layoutMode.
-              // I need to update the prop passed to JournalEntry because I see I missed passing layoutMode in my thought but the file content shows it.
-              // Wait, checking previous file write... JournalEntry takes layoutMode.
-              // So I must pass layoutMode={layoutMode}
               layoutMode={layoutMode}
+              fontSize={effectiveFontSize}
               spacing={spacing}
               onSave={(body) => handleSave(index, body)}
               onMouseEnter={() => {
@@ -259,15 +273,18 @@ export default function App() {
           onToggleDarkMode={setIsDarkMode} 
           layoutMode={layoutMode}
           onLayoutModeChange={setLayoutMode}
+          fontSize={fontSize}
+          onFontSizeChange={setFontSize}
+          onPreviewFontSizeChange={setPreviewFontSize}
           spacing={spacing}
           onSpacingChange={setSpacing}
-          // The settings page prop interface was updated to include isDeveloperMode? 
-          // Let me check SettingsPage content I wrote.
-          // Yes, I see isDeveloperMode in the previous write.
-          // I need to add that state here or pass a dummy if not needed yet.
-          // User asked for "placeholder Developer Mode toggle", so I should add state.
-          isDeveloperMode={false} // Placeholder for now as requested or state
-          onToggleDeveloperMode={() => {}} 
+          isDeveloperMode={isDeveloperMode}
+          onToggleDeveloperMode={setIsDeveloperMode}
+          notificationType={notificationType}
+          onNotificationTypeChange={setNotificationType}
+          customNotificationMessage={customNotificationMessage}
+          onCustomNotificationMessageChange={setCustomNotificationMessage}
+          onTestNotification={handleTestNotification}
           onClose={() => setIsSettingsOpen(false)} 
         />
       )}
