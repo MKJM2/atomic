@@ -1,3 +1,4 @@
+// TODO: re-enable for history view — currently not imported by App.tsx
 interface StreakProps {
   count: number
   enabled: boolean

@@ -2,11 +2,7 @@ import { getDb } from './client'
 import type { Entry } from '@twoline/core'
 
 export async function upsertEntry(entry: Entry): Promise<void> {
-  console.log('[db/entries.ts] upsertEntry: Upserting entry:', entry.id);
-  console.log('[db/entries.ts] upsertEntry: Calling getDb...');
-  const db = await getDb();
-  console.log('[db/entries.ts] upsertEntry: getDb returned.');
-  console.log('[db/entries.ts] upsertEntry: Executing INSERT/UPDATE...');
+  const db = await getDb()
   await db.execute(
     `INSERT INTO entries (id, date, body, created_at, updated_at, synced_at, is_deleted)
      VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -22,8 +18,7 @@ export async function upsertEntry(entry: Entry): Promise<void> {
       entry.syncedAt,
       entry.isDeleted ? 1 : 0,
     ]
-  );
-  console.log('[db/entries.ts] upsertEntry: INSERT/UPDATE completed.');
+  )
 }
 
 export async function getEntryByDate(date: string): Promise<Entry | null> {

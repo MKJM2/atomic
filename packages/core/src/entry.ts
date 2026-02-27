@@ -17,13 +17,9 @@ export function todayLocalDate(): string {
 }
 
 export function newEntry(body: string): Entry {
-  console.log('[core/entry.ts] newEntry: Creating new entry object.');
   const now = new Date().toISOString();
-  console.log('[core/entry.ts] newEntry: Calling crypto.randomUUID...');
-  const id = crypto.randomUUID();
-  console.log('[core/entry.ts] newEntry: crypto.randomUUID returned:', id);
-  const entry = {
-    id: id,
+  return {
+    id: crypto.randomUUID(),
     date: todayLocalDate(),
     body,
     createdAt: now,
@@ -31,6 +27,4 @@ export function newEntry(body: string): Entry {
     syncedAt: null,
     isDeleted: false,
   };
-  console.log('[core/entry.ts] newEntry: Returning entry:', entry.id);
-  return entry;
 }
