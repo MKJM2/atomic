@@ -110,6 +110,11 @@ body,
   color: var(--color-placeholder);
 }
 
+.entry-editor.missing-entry::placeholder {
+  color: rgba(239, 68, 68, 0.4);
+  /* Tailwind red-500 with low opacity */
+}
+
 /* ─── Settings ─── */
 .settings-overlay {
   position: fixed;

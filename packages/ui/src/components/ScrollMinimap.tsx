@@ -1,9 +1,9 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import type { Entry } from '@twoline/core';
 
 interface ScrollMinimapProps {
   entries: Entry[];
-  containerRef: React.RefObject<HTMLDivElement>;
+  containerRef: React.RefObject<HTMLDivElement | null>;
   entryRefs: React.MutableRefObject<(HTMLElement | null)[]>;
 }
 
@@ -24,7 +24,7 @@ function formatDate(dateString: string) {
 export function ScrollMinimap({ entries, containerRef, entryRefs }: ScrollMinimapProps) {
   const [thumbTop, setThumbTop] = useState(0);
   const [thumbHeight, setThumbHeight] = useState(0);
-  const [isHovered, setIsHovered] = useState(false);
+
   const [visibleEntries, setVisibleEntries] = useState<Entry[]>([]);
   const [entryPositions, setEntryPositions] = useState<Record<string, number>>({});
 
@@ -104,8 +104,6 @@ export function ScrollMinimap({ entries, containerRef, entryRefs }: ScrollMinima
   return (
     <div
       className="scroll-minimap-container"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
     >
       {/* Simple Track & Thumb */}
       <div className="scroll-track">
@@ -117,7 +115,7 @@ export function ScrollMinimap({ entries, containerRef, entryRefs }: ScrollMinima
 
       {/* Table of Contents (On Hover) */}
       <div className="toc-list">
-        {visibleEntries.map((entry, index) => {
+        {visibleEntries.map((entry) => {
           const relativeTop = entryPositions[entry.id] || 0;
 
           return (

@@ -114,19 +114,19 @@ export default function App() {
 
         {entries.map((entry, index) => (
           <article
-            key={entry.id}
+            key={entry.date}
             ref={(el) => {
               entryRefs.current[index] = el;
             }}
             data-index={index}
-            data-entry-id={entry.id}
+            data-entry-date={entry.date}
             className="w-full relative shrink-0 snap-start flex justify-center"
           >
             <main className="max-w-2xl mx-auto px-6">
               <JournalEntry
                 entry={entry}
                 isActive={index === activeIndex}
-                isSaving={isEntrySaving(entry.id)}
+                isSaving={isEntrySaving(entry.date)}
                 layoutMode={layoutMode}
                 fontSize={effectiveFontSize}
                 spacing={settings.spacing}

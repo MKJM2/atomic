@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { upsertEntry, getAllEntries, getAllDates } from '@twoline/db';
 import { newEntry, todayLocalDate, type Entry } from '@twoline/core';
 
@@ -7,17 +7,56 @@ interface UseEntriesOptions {
 }
 
 export function useEntries({ scrollToActive }: UseEntriesOptions) {
-    const [entries, setEntries] = useState<Entry[]>([]);
+    const [dbEntries, setDbEntries] = useState<Entry[]>([]);
     const [activeIndex, setActiveIndex] = useState(0);
-    const [savingIds, setSavingIds] = useState<Set<string>>(new Set());
+    const [savingDates, setSavingDates] = useState<Set<string>>(new Set());
     const [hasMore, setHasMore] = useState(true);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const fakeEntryCache = useRef<Map<string, Entry>>(new Map());
+
+    const entries = useMemo(() => {
+        const todayStr = todayLocalDate();
+        if (dbEntries.length === 0) {
+            const empty = newEntry('');
+            empty.date = todayStr;
+            return [empty];
+        }
+
+        const entryMap = new Map<string, Entry>();
+        for (const e of dbEntries) {
+            entryMap.set(e.date, e);
+        }
+
+        const timeline: Entry[] = [];
+        let curr = new Date(todayStr + 'T12:00:00');
+        const oldestDateStr = dbEntries[dbEntries.length - 1].date;
+        const oldest = new Date(oldestDateStr + 'T12:00:00');
+
+        while (curr >= oldest) {
+            const dStr = curr.toISOString().split('T')[0];
+            if (entryMap.has(dStr)) {
+                timeline.push(entryMap.get(dStr)!);
+            } else {
+                if (!fakeEntryCache.current.has(dStr)) {
+                    const empty = newEntry('');
+                    empty.date = dStr;
+                    fakeEntryCache.current.set(dStr, empty);
+                }
+                timeline.push(fakeEntryCache.current.get(dStr)!);
+            }
+            curr.setDate(curr.getDate() - 1);
+        }
+        return timeline;
+    }, [dbEntries]);
+
     const entriesRef = useRef<Entry[]>([]);
+    const dbEntriesRef = useRef<Entry[]>([]);
 
     // Keep ref in sync for rollback safety
     useEffect(() => {
         entriesRef.current = entries;
-    }, [entries]);
+        dbEntriesRef.current = dbEntries;
+    }, [entries, dbEntries]);
 
     // Data loading and seeding
     useEffect(() => {
@@ -57,14 +96,9 @@ export function useEntries({ scrollToActive }: UseEntriesOptions) {
             }
             if (allEntries.length < 50) setHasMore(false);
 
-            const today = todayLocalDate();
-            if (!allEntries.some(e => e.date === today)) {
-                allEntries.unshift(newEntry(''));
-            }
-            setEntries(allEntries);
-            const todayIndex = allEntries.findIndex(e => e.date === today);
-            setActiveIndex(todayIndex);
-            setTimeout(() => scrollToActive(todayIndex), 100);
+            setDbEntries(allEntries);
+            setActiveIndex(0);
+            setTimeout(() => scrollToActive(0), 100);
         }
         load();
     }, [scrollToActive]);
@@ -73,8 +107,9 @@ export function useEntries({ scrollToActive }: UseEntriesOptions) {
         const originalEntry = entriesRef.current[index];
         if (!originalEntry) return;
 
-        const entryId = originalEntry.id;
-        setSavingIds((prev) => new Set(prev).add(entryId));
+        const entryDate = originalEntry.date;
+        const wasInDb = dbEntriesRef.current.some(e => e.date === entryDate);
+        setSavingDates((prev) => new Set(prev).add(entryDate));
 
         const entryToSave = {
             ...originalEntry,
@@ -83,10 +118,15 @@ export function useEntries({ scrollToActive }: UseEntriesOptions) {
         };
 
         // Optimistic update
-        setEntries((prev) => {
-            const next = [...prev];
-            next[index] = entryToSave;
-            return next;
+        setDbEntries((prev) => {
+            const existingIdx = prev.findIndex(e => e.date === entryDate);
+            if (existingIdx >= 0) {
+                const next = [...prev];
+                next[existingIdx] = entryToSave;
+                return next;
+            } else {
+                return [...prev, entryToSave].sort((a, b) => b.date.localeCompare(a.date));
+            }
         });
 
         try {
@@ -94,15 +134,17 @@ export function useEntries({ scrollToActive }: UseEntriesOptions) {
         } catch (e) {
             console.error("Failed to save entry", e);
             // Rollback using ref for latest state
-            setEntries((prev) => {
-                const next = [...prev];
-                next[index] = originalEntry;
-                return next;
+            setDbEntries((prev) => {
+                if (!wasInDb) {
+                    return prev.filter(e => e.date !== entryDate);
+                } else {
+                    return prev.map(e => e.date === entryDate ? originalEntry : e);
+                }
             });
         } finally {
-            setSavingIds((prev) => {
+            setSavingDates((prev) => {
                 const next = new Set(prev);
-                next.delete(entryId);
+                next.delete(entryDate);
                 return next;
             });
         }
@@ -112,22 +154,20 @@ export function useEntries({ scrollToActive }: UseEntriesOptions) {
         if (isLoadingMore || !hasMore) return;
         setIsLoadingMore(true);
         try {
-            // Count total items that are already persisted (skipping optimistic "today" placeholder if unpersisted)
-            const currentOffset = entries.length;
+            const currentOffset = dbEntries.length;
             const newEntries = await getAllEntries(50, currentOffset);
             if (newEntries.length < 50) {
                 setHasMore(false);
             }
-            // Append only new entries that aren't already in state
-            setEntries(prev => [...prev, ...newEntries.filter(n => !prev.some(p => p.id === n.id))]);
+            setDbEntries(prev => [...prev, ...newEntries.filter(n => !prev.some(p => p.id === n.id))]);
         } finally {
             setIsLoadingMore(false);
         }
-    }, [entries, isLoadingMore, hasMore]);
+    }, [dbEntries, isLoadingMore, hasMore]);
 
-    const isEntrySaving = useCallback((entryId: string) => {
-        return savingIds.has(entryId);
-    }, [savingIds]);
+    const isEntrySaving = useCallback((date: string) => {
+        return savingDates.has(date);
+    }, [savingDates]);
 
     return {
         entries,
@@ -135,7 +175,7 @@ export function useEntries({ scrollToActive }: UseEntriesOptions) {
         setActiveIndex,
         handleSave,
         isEntrySaving,
-        isSaving: savingIds.size > 0,
+        isSaving: savingDates.size > 0,
         loadMore,
         hasMore,
     };
