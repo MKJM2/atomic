@@ -10,6 +10,8 @@ export function useEntries({ scrollToActive }: UseEntriesOptions) {
     const [entries, setEntries] = useState<Entry[]>([]);
     const [activeIndex, setActiveIndex] = useState(0);
     const [savingIds, setSavingIds] = useState<Set<string>>(new Set());
+    const [hasMore, setHasMore] = useState(true);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
     const entriesRef = useRef<Entry[]>([]);
 
     // Keep ref in sync for rollback safety
@@ -48,8 +50,12 @@ export function useEntries({ scrollToActive }: UseEntriesOptions) {
                         isDeleted: false,
                     });
                 }
-                allEntries = await getAllEntries();
+                allEntries = await getAllEntries(50, 0);
+            } else if (allEntries.length === 0) {
+                // Not seeding but maybe haven't loaded initial yet
+                allEntries = await getAllEntries(50, 0);
             }
+            if (allEntries.length < 50) setHasMore(false);
 
             const today = todayLocalDate();
             if (!allEntries.some(e => e.date === today)) {
@@ -102,6 +108,23 @@ export function useEntries({ scrollToActive }: UseEntriesOptions) {
         }
     }, []);
 
+    const loadMore = useCallback(async () => {
+        if (isLoadingMore || !hasMore) return;
+        setIsLoadingMore(true);
+        try {
+            // Count total items that are already persisted (skipping optimistic "today" placeholder if unpersisted)
+            const currentOffset = entries.length;
+            const newEntries = await getAllEntries(50, currentOffset);
+            if (newEntries.length < 50) {
+                setHasMore(false);
+            }
+            // Append only new entries that aren't already in state
+            setEntries(prev => [...prev, ...newEntries.filter(n => !prev.some(p => p.id === n.id))]);
+        } finally {
+            setIsLoadingMore(false);
+        }
+    }, [entries, isLoadingMore, hasMore]);
+
     const isEntrySaving = useCallback((entryId: string) => {
         return savingIds.has(entryId);
     }, [savingIds]);
@@ -113,5 +136,7 @@ export function useEntries({ scrollToActive }: UseEntriesOptions) {
         handleSave,
         isEntrySaving,
         isSaving: savingIds.size > 0,
+        loadMore,
+        hasMore,
     };
 }

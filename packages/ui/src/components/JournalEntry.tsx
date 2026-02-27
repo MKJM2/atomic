@@ -90,11 +90,7 @@ export function JournalEntry({
   }, [adjustHeight]);
 
   function handleChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
-    const nextVal = e.target.value;
-    const newlineCount = (nextVal.match(/\n/g) || []).length;
-    if (newlineCount <= 6) {
-      setVal(nextVal);
-    }
+    setVal(e.target.value);
   }
 
   function handleBlur() {
@@ -110,11 +106,8 @@ export function JournalEntry({
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === 'Enter' && !e.shiftKey) {
-      setTimeout(() => {
-        if (textareaRef.current) {
-          onSave(textareaRef.current.value);
-        }
-      }, 0);
+      e.preventDefault();
+      e.currentTarget.blur();
     }
   }
 
@@ -147,7 +140,7 @@ export function JournalEntry({
         ref={textareaRef}
         value={val}
         onChange={handleChange}
-        readOnly={!isActive || isSaving}
+        readOnly={isSaving}
         onFocus={handleFocus}
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
