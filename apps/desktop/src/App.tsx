@@ -1,22 +1,12 @@
-import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
-import { JournalEntry, SettingsPage, ScrollMinimap, PLACEHOLDERS, type LayoutMode, type NotificationType } from '@twoline/ui';
-import { upsertEntry, getAllEntries, getAllDates } from '@twoline/db';
-import { newEntry, todayLocalDate, type Entry } from '@twoline/core';
-import { isPermissionGranted, requestPermission, sendNotification } from '@tauri-apps/plugin-notification';
+import { useState, useRef, useCallback, useMemo } from 'react';
+import { JournalEntry, SettingsPage, ScrollMinimap, PLACEHOLDERS } from '@twoline/ui';
+import { useSettings } from './hooks/useSettings';
+import { useEntries } from './hooks/useEntries';
+import { useNotifications } from './hooks/useNotifications';
+import { useKeyboardNav } from './hooks/useKeyboardNav';
 
 export default function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  const [layoutMode, setLayoutMode] = useState<LayoutMode>('minimalist');
-  const [fontSize, setFontSize] = useState(24);
-  const [previewFontSize, setPreviewFontSize] = useState<number | null>(null);
-  const [spacing, setSpacing] = useState(4);
-  const [isDeveloperMode, setIsDeveloperMode] = useState(import.meta.env.DEV);
-  const [notificationType, setNotificationType] = useState<NotificationType>('random');
-  const [customNotificationMessage, setCustomNotificationMessage] = useState('Time to write your two sentences for today.');
-  const [entries, setEntries] = useState<Entry[]>([]);
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [isSaving, setIsSaving] = useState(false);
   const entryRefs = useRef<(HTMLElement | null)[]>([]);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -43,171 +33,33 @@ export default function App() {
     });
   }, []);
 
-  // Sync dark mode class
-  useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [isDarkMode]);
+  // Hooks
+  const { settings, isLoaded, setPreviewFontSize, updateSetting, effectiveFontSize } = useSettings();
+  const { entries, activeIndex, setActiveIndex, handleSave, isEntrySaving } = useEntries({ scrollToActive });
+  const { handleTestNotification } = useNotifications({
+    notificationType: settings.notificationType,
+    customNotificationMessage: settings.customNotificationMessage,
+  });
 
-  // Data loading and seeding
-  useEffect(() => {
-    async function load() {
-      const allDates = await getAllDates();
-      let allEntries = await getAllEntries();
+  useKeyboardNav({
+    activeIndex,
+    setActiveIndex,
+    entryCount: entries.length,
+    layoutMode: settings.layoutMode,
+    isSettingsOpen,
+    setIsSettingsOpen,
+    scrollToActive,
+  });
 
-      if (allDates.length === 0) {
-        console.log('No entries found, seeding database...');
-        const seedEntries = [
-          { offset: 1, quote: 'A diary is a record of consciousness, a weapon against the sense of dissolution.' },
-          { offset: 2, quote: 'I have a deeply hidden and inarticulate desire for something beyond the daily life.' },
-          { offset: 3, quote: 'I am jealous of those who think more deeply, who write better, who draw better, who ski better, who look better, who live better, who love better than I.' },
-          { offset: 4, quote: 'I was cleaning out my room, and when I was wiping the dust from the sofa, I couldn\'t remember whether I had wiped it or not.' },
-          { offset: 5, quote: 'Slept, woke, slept, woke, miserable life.' },
-          { offset: 6, quote: 'The personal life deeply lived always expands into truths beyond itself.' },
-          { offset: 7, quote: 'I am Defeated all the time; yet to Victory I am born.' },
-        ];
-
-        for (const { offset, quote } of seedEntries) {
-          const date = new Date();
-          date.setDate(date.getDate() - offset);
-          const dateString = date.toISOString().split('T')[0];
-          await upsertEntry({
-            id: crypto.randomUUID(),
-            date: dateString,
-            body: quote,
-            createdAt: date.toISOString(),
-            updatedAt: date.toISOString(),
-            syncedAt: null,
-            isDeleted: false,
-          });
-        }
-        allEntries = await getAllEntries();
-      }
-
-      const today = todayLocalDate();
-      if (!allEntries.some(e => e.date === today)) {
-        allEntries.unshift(newEntry(''));
-      }
-      setEntries(allEntries);
-      const todayIndex = allEntries.findIndex(e => e.date === today);
-      setActiveIndex(todayIndex);
-      setTimeout(() => scrollToActive(todayIndex), 100);
-    }
-    load();
-  }, [scrollToActive]);
-
-  // Scroll detection via IntersectionObserver (Only for minimalist mode)
-  useEffect(() => {
-    if (layoutMode !== 'minimalist') return;
-
-    const observer = new IntersectionObserver(
-      (observedEntries) => {
-        const inView = observedEntries.find((e) => e.isIntersecting);
-        if (inView?.target) {
-          const index = parseInt(inView.target.getAttribute('data-index')!, 10);
-          setActiveIndex(index);
-        }
-      },
-      { threshold: 0.75 }
-    );
-
-    const currentRefs = entryRefs.current;
-    currentRefs.forEach((ref) => {
-      if (ref) observer.observe(ref);
-    });
-
-    return () => {
-      currentRefs.forEach((ref) => {
-        if (ref) observer.unobserve(ref);
-      });
-    };
-  }, [entries, layoutMode]);
-
-  // Keyboard navigation
-  useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape' && isSettingsOpen) {
-        setIsSettingsOpen(false);
-        return;
-      }
-
-      if (
-        e.target instanceof HTMLTextAreaElement ||
-        e.target instanceof HTMLInputElement ||
-        (e.target instanceof HTMLDivElement && e.target.isContentEditable)
-      ) {
-        return;
-      }
-
-      let newIndex = activeIndex;
-      if (e.key === 'j' || e.key === 'ArrowDown') {
-        e.preventDefault();
-        newIndex = Math.min(activeIndex + 1, entries.length - 1);
-      } else if (e.key === 'k' || e.key === 'ArrowUp') {
-        e.preventDefault();
-        newIndex = Math.max(activeIndex - 1, 0);
-      }
-      if (newIndex !== activeIndex) {
-        setActiveIndex(newIndex);
-        if (layoutMode === 'minimalist') {
-          scrollToActive(newIndex);
-        }
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeIndex, entries.length, scrollToActive, layoutMode, isSettingsOpen]);
-
-  async function handleSave(index: number, body: string) {
-    setIsSaving(true);
-    const originalEntry = entries[index];
-    const entryToSave = {
-      ...originalEntry,
-      body,
-      updatedAt: new Date().toISOString(),
-    };
-
-    const newEntries = [...entries];
-    newEntries[index] = entryToSave;
-    setEntries(newEntries);
-
-    try {
-      await upsertEntry(entryToSave);
-    } catch (e) {
-      console.error("Failed to save entry", e);
-      setEntries(entries);
-    } finally {
-      setIsSaving(false);
-    }
-  }
-
-  async function handleTestNotification() {
-    let permissionGranted = await isPermissionGranted();
-    if (!permissionGranted) {
-      const permission = await requestPermission();
-      permissionGranted = permission === 'granted';
-    }
-    if (permissionGranted) {
-      let body = customNotificationMessage;
-      if (notificationType === 'random') {
-        body = PLACEHOLDERS[Math.floor(Math.random() * PLACEHOLDERS.length)];
-      }
-      sendNotification({
-        title: 'twoline',
-        body: body
-      });
-    }
-  }
-
+  const layoutMode = settings.layoutMode;
   const isSnapEnabled = layoutMode === 'minimalist';
-  const effectiveFontSize = previewFontSize ?? fontSize;
+
+  // Show nothing until settings are loaded to avoid flash
+  if (!isLoaded) return null;
 
   return (
     <div
-      className={`relative h-screen transition-colors duration-300 ${isDarkMode ? 'bg-[#0f1115] text-gray-100' : 'bg-white text-[#111827]'
+      className={`relative h-screen transition-colors duration-300 ${settings.isDarkMode ? 'bg-[#0f1115] text-gray-100' : 'bg-white text-[#111827]'
         }`}
       style={{
         fontFamily: '"Iowan Old Style", "Apple Garamond", Baskerville, "Times New Roman", "Droid Serif", Times, "Source Serif Pro", serif',
@@ -248,10 +100,10 @@ export default function App() {
             <JournalEntry
               entry={entry}
               isActive={index === activeIndex}
-              isSaving={isSaving}
+              isSaving={isEntrySaving(entry.id)}
               layoutMode={layoutMode}
               fontSize={effectiveFontSize}
-              spacing={spacing}
+              spacing={settings.spacing}
               onSave={(body) => handleSave(index, body)}
               onMouseEnter={() => {
                 if (layoutMode !== 'minimalist') {
@@ -266,21 +118,21 @@ export default function App() {
 
       {isSettingsOpen && (
         <SettingsPage
-          isDarkMode={isDarkMode}
-          onToggleDarkMode={setIsDarkMode}
-          layoutMode={layoutMode}
-          onLayoutModeChange={setLayoutMode}
-          fontSize={fontSize}
-          onFontSizeChange={setFontSize}
+          isDarkMode={settings.isDarkMode}
+          onToggleDarkMode={(v) => updateSetting('isDarkMode', v)}
+          layoutMode={settings.layoutMode}
+          onLayoutModeChange={(v) => updateSetting('layoutMode', v)}
+          fontSize={settings.fontSize}
+          onFontSizeChange={(v) => updateSetting('fontSize', v)}
           onPreviewFontSizeChange={setPreviewFontSize}
-          spacing={spacing}
-          onSpacingChange={setSpacing}
-          isDeveloperMode={isDeveloperMode}
-          onToggleDeveloperMode={setIsDeveloperMode}
-          notificationType={notificationType}
-          onNotificationTypeChange={setNotificationType}
-          customNotificationMessage={customNotificationMessage}
-          onCustomNotificationMessageChange={setCustomNotificationMessage}
+          spacing={settings.spacing}
+          onSpacingChange={(v) => updateSetting('spacing', v)}
+          isDeveloperMode={settings.isDeveloperMode}
+          onToggleDeveloperMode={(v) => updateSetting('isDeveloperMode', v)}
+          notificationType={settings.notificationType}
+          onNotificationTypeChange={(v) => updateSetting('notificationType', v)}
+          customNotificationMessage={settings.customNotificationMessage}
+          onCustomNotificationMessageChange={(v) => updateSetting('customNotificationMessage', v)}
           onTestNotification={handleTestNotification}
           onClose={() => setIsSettingsOpen(false)}
         />
