@@ -1,10 +1,13 @@
-import React, { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import type { Entry } from '@twoline/core';
+import type { Virtualizer } from '@tanstack/react-virtual';
+
+const MAX_MINIMAP_ITEMS = 25;
 
 interface ScrollMinimapProps {
   entries: Entry[];
-  containerRef: React.RefObject<HTMLDivElement>;
-  entryRefs: React.MutableRefObject<(HTMLElement | null)[]>;
+  activeIndex: number;
+  virtualizer: Virtualizer<HTMLDivElement, Element>;
 }
 
 function getOrdinal(n: number) {
@@ -21,20 +24,20 @@ function formatDate(dateString: string) {
   return `${day} ${month} ${year}`;
 }
 
-export function ScrollMinimap({ entries, containerRef, entryRefs }: ScrollMinimapProps) {
+export function ScrollMinimap({ entries, activeIndex, virtualizer }: ScrollMinimapProps) {
+  const [isHovered, setIsHovered] = useState(false);
   const [thumbTop, setThumbTop] = useState(0);
   const [thumbHeight, setThumbHeight] = useState(0);
-  const [isHovered, setIsHovered] = useState(false);
-  const [visibleEntries, setVisibleEntries] = useState<Entry[]>([]);
-  const [entryPositions, setEntryPositions] = useState<Record<string, number>>({});
 
-  // Update scroll thumb position and element offsets
+  // Sync basic thumb geometry with virtualization state
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
     const handleScroll = () => {
-      const { scrollTop, scrollHeight, clientHeight } = container;
+      const scrollEl = virtualizer.scrollElement;
+      if (!scrollEl) return;
+
+      const { scrollTop, scrollHeight, clientHeight } = scrollEl;
+      if (scrollHeight <= 0) return;
+
       const scrollRatio = scrollTop / scrollHeight;
       const visibleRatio = clientHeight / scrollHeight;
 
@@ -42,63 +45,41 @@ export function ScrollMinimap({ entries, containerRef, entryRefs }: ScrollMinima
       setThumbHeight(Math.max(visibleRatio * 100, 5)); // Min 5% height
     };
 
-    const updatePositions = () => {
-      const { scrollHeight } = container;
-      const positions: Record<string, number> = {};
-
-      entries.forEach((entry, index) => {
-        const el = entryRefs.current[index];
-        if (el) {
-          // Align markers with the CENTER of the journal entry
-          const centerOffset = el.offsetTop + (el.offsetHeight / 2);
-          positions[entry.id] = (centerOffset / scrollHeight) * 100;
-        }
-      });
-      setEntryPositions(positions);
-    };
-
-    container.addEventListener('scroll', handleScroll);
-
-    const observer = new ResizeObserver(() => {
-      handleScroll();
-      updatePositions();
-    });
-    observer.observe(container);
-
-    // Initial calc to handle layout shifts
+    const scrollEl = virtualizer.scrollElement;
+    scrollEl?.addEventListener('scroll', handleScroll);
     handleScroll();
-    updatePositions();
 
-    return () => {
-      container.removeEventListener('scroll', handleScroll);
-      observer.disconnect();
-    };
-  }, [containerRef, entries, entryRefs]);
+    return () => scrollEl?.removeEventListener('scroll', handleScroll);
+  }, [virtualizer]);
 
-  // Calculate visible markers based on density
-  useEffect(() => {
-    const calculateMarkers = () => {
-      const height = window.innerHeight - 64;
-      const itemHeight = 30;
-      const maxItems = Math.floor(height / itemHeight);
+  // Calculate sliding window bounds
+  const totalEntries = entries.length;
+  if (totalEntries === 0) return null;
 
-      if (entries.length <= maxItems) {
-        setVisibleEntries(entries);
-      } else {
-        const step = Math.ceil(entries.length / maxItems);
-        const filtered = entries.filter((_, i) => i % step === 0);
-        setVisibleEntries(filtered);
-      }
-    };
+  const halfWindow = Math.floor(MAX_MINIMAP_ITEMS / 2);
+  let startIndex = activeIndex - halfWindow;
+  let endIndex = activeIndex + halfWindow;
 
-    calculateMarkers();
-    window.addEventListener('resize', calculateMarkers);
-    return () => window.removeEventListener('resize', calculateMarkers);
-  }, [entries]);
+  // Clamp to bounds
+  if (startIndex < 0) {
+    endIndex += Math.abs(startIndex);
+    startIndex = 0;
+  }
+  if (endIndex >= totalEntries) {
+    startIndex -= (endIndex - totalEntries + 1);
+    endIndex = totalEntries - 1;
+  }
+
+  // Final safety clamp
+  startIndex = Math.max(0, startIndex);
+  endIndex = Math.min(totalEntries - 1, endIndex);
+
+  const windowEntries = entries.slice(startIndex, endIndex + 1);
+  const hiddenTopCount = startIndex;
+  const hiddenBottomCount = totalEntries - 1 - endIndex;
 
   const handleEntryClick = (index: number) => {
-    const el = entryRefs.current[index];
-    el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    virtualizer.scrollToIndex(index, { behavior: 'smooth', align: 'center' });
   };
 
   return (
@@ -107,7 +88,6 @@ export function ScrollMinimap({ entries, containerRef, entryRefs }: ScrollMinima
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Simple Track & Thumb */}
       <div className="scroll-track">
         <div
           className="scroll-thumb"
@@ -115,27 +95,53 @@ export function ScrollMinimap({ entries, containerRef, entryRefs }: ScrollMinima
         />
       </div>
 
-      {/* Table of Contents (On Hover) */}
-      <div className="toc-list">
-        {visibleEntries.map((entry, index) => {
-          const relativeTop = entryPositions[entry.id] || 0;
+      <div className="toc-list" style={{ opacity: isHovered ? 1 : 0, transition: 'opacity 0.2s' }}>
 
-          return (
-            <div
-              key={entry.id}
-              className="toc-item-wrapper"
-              style={{ top: `${relativeTop}%` }}
-            >
-              <div className="toc-marker" />
+        {hiddenTopCount > 0 && (
+          <div className="text-xs text-gray-400 dark:text-gray-500 mb-2 pl-4 italic">
+            ... and {hiddenTopCount} more entries
+          </div>
+        )}
+
+        <div className="flex flex-col flex-1 h-full justify-between py-2 relative">
+          {windowEntries.map((entry, relativeIndex) => {
+            const absoluteIndex = startIndex + relativeIndex;
+            const isMissing = !entry.id && !entry.body;
+            const isActive = absoluteIndex === activeIndex;
+
+            // Compute roughly evenly distributed top %
+            const percent = windowEntries.length > 1
+              ? (relativeIndex / (windowEntries.length - 1)) * 100
+              : 50;
+
+            return (
               <div
-                className="toc-item"
-                onClick={() => handleEntryClick(entries.findIndex(e => e.id === entry.id))}
+                key={entry.date}
+                className="toc-item-wrapper"
+                style={{ top: `${percent}%` }}
               >
-                {formatDate(entry.date)}
+                <div
+                  className={`toc-marker ${isActive ? 'bg-emerald-500 scale-150' : isMissing ? 'bg-red-500/30' : 'bg-gray-400 dark:bg-gray-600'}`}
+                  style={{ transition: 'all 0.2s' }}
+                />
+                <button
+                  onClick={() => handleEntryClick(absoluteIndex)}
+                  className={`toc-item ml-4 pl-2 border-l-2 transition-all block w-full text-left truncate
+                    ${isActive ? 'text-gray-900 dark:text-gray-100 border-emerald-500 font-medium' : 'text-gray-500 border-transparent hover:text-gray-700 dark:hover:text-gray-300'}
+                  `}
+                >
+                  {formatDate(entry.date)}
+                </button>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
+
+        {hiddenBottomCount > 0 && (
+          <div className="text-xs text-gray-400 dark:text-gray-500 mt-2 pl-4 italic absolute bottom-0">
+            ... and {hiddenBottomCount} more entries
+          </div>
+        )}
       </div>
     </div>
   );

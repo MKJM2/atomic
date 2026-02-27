@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getSetting, setSetting } from '@twoline/db';
-import type { LayoutMode, NotificationType, Settings } from '@twoline/ui';
+import type { Settings } from '@twoline/ui';
 
 const DEFAULTS: Settings = {
     isDarkMode: false,

@@ -1,80 +1,126 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { upsertEntry, getAllEntries, getAllDates } from '@twoline/db';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { upsertEntry, getAllEntrySkeletons, getEntriesByDates, searchEntries } from '@twoline/db';
 import { newEntry, todayLocalDate, type Entry } from '@twoline/core';
 
-interface UseEntriesOptions {
-    scrollToActive: (index: number) => void;
-}
+export function useEntries() {
+    const [searchQuery, setSearchQuery] = useState('');
+    const [fullSkeleton, setFullSkeleton] = useState<{ id: string | null; date: string }[]>([]);
+    const [matchedIds, setMatchedIds] = useState<Set<string> | null>(null);
+    const [entryCache, setEntryCache] = useState<Record<string, Entry>>({});
+    const [savingDates, setSavingDates] = useState<Set<string>>(new Set());
 
-export function useEntries({ scrollToActive }: UseEntriesOptions) {
-    const [entries, setEntries] = useState<Entry[]>([]);
-    const [activeIndex, setActiveIndex] = useState(0);
-    const [savingIds, setSavingIds] = useState<Set<string>>(new Set());
-    const [hasMore, setHasMore] = useState(true);
-    const [isLoadingMore, setIsLoadingMore] = useState(false);
-    const entriesRef = useRef<Entry[]>([]);
+    const isHydrating = useRef<Set<string>>(new Set());
 
-    // Keep ref in sync for rollback safety
+    // 1. Initial Load: Build the contiguous full skeleton
     useEffect(() => {
-        entriesRef.current = entries;
-    }, [entries]);
+        async function loadSkeleton() {
+            const dbSkeletons = await getAllEntrySkeletons();
+            const todayStr = todayLocalDate();
 
-    // Data loading and seeding
-    useEffect(() => {
-        async function load() {
-            const allDates = await getAllDates();
-            let allEntries = await getAllEntries();
-
-            if (allDates.length === 0) {
-                const seedEntries = [
-                    { offset: 1, quote: 'A diary is a record of consciousness, a weapon against the sense of dissolution.' },
-                    { offset: 2, quote: 'I have a deeply hidden and inarticulate desire for something beyond the daily life.' },
-                    { offset: 3, quote: 'I am jealous of those who think more deeply, who write better, who draw better, who ski better, who look better, who live better, who love better than I.' },
-                    { offset: 4, quote: 'I was cleaning out my room, and when I was wiping the dust from the sofa, I couldn\'t remember whether I had wiped it or not.' },
-                    { offset: 5, quote: 'Slept, woke, slept, woke, miserable life.' },
-                    { offset: 6, quote: 'The personal life deeply lived always expands into truths beyond itself.' },
-                    { offset: 7, quote: 'I am Defeated all the time; yet to Victory I am born.' },
-                ];
-
-                for (const { offset, quote } of seedEntries) {
-                    const date = new Date();
-                    date.setDate(date.getDate() - offset);
-                    const dateString = date.toISOString().split('T')[0];
-                    await upsertEntry({
-                        id: crypto.randomUUID(),
-                        date: dateString,
-                        body: quote,
-                        createdAt: date.toISOString(),
-                        updatedAt: date.toISOString(),
-                        syncedAt: null,
-                        isDeleted: false,
-                    });
-                }
-                allEntries = await getAllEntries(50, 0);
-            } else if (allEntries.length === 0) {
-                // Not seeding but maybe haven't loaded initial yet
-                allEntries = await getAllEntries(50, 0);
+            const dbMap = new Map<string, string>();
+            for (const s of dbSkeletons) {
+                dbMap.set(s.date, s.id);
             }
-            if (allEntries.length < 50) setHasMore(false);
 
-            const today = todayLocalDate();
-            if (!allEntries.some(e => e.date === today)) {
-                allEntries.unshift(newEntry(''));
+            const skeleton: { id: string | null; date: string }[] = [];
+            let curr = new Date(todayStr + 'T12:00:00');
+            const oldestDateStr = dbSkeletons.length > 0 ? dbSkeletons[dbSkeletons.length - 1].date : todayStr;
+            const oldest = new Date(oldestDateStr + 'T12:00:00');
+
+            while (curr >= oldest) {
+                const dStr = curr.toISOString().split('T')[0];
+                skeleton.push({ id: dbMap.get(dStr) || null, date: dStr });
+                curr.setDate(curr.getDate() - 1);
             }
-            setEntries(allEntries);
-            const todayIndex = allEntries.findIndex(e => e.date === today);
-            setActiveIndex(todayIndex);
-            setTimeout(() => scrollToActive(todayIndex), 100);
+            setFullSkeleton(skeleton);
         }
-        load();
-    }, [scrollToActive]);
+        loadSkeleton();
+    }, []);
 
-    const handleSave = useCallback(async (index: number, body: string) => {
-        const originalEntry = entriesRef.current[index];
+    // 2. Search Effect
+    useEffect(() => {
+        async function runSearch() {
+            if (!searchQuery.trim()) {
+                setMatchedIds(null);
+                return;
+            }
+            const ids = await searchEntries(searchQuery);
+            setMatchedIds(new Set(ids));
+        }
+        runSearch();
+    }, [searchQuery]);
+
+    // 3. Compute Visible Timeline
+    const visibleTimeline = useMemo(() => {
+        if (!matchedIds) return fullSkeleton;
+        return fullSkeleton.filter(s => s.id && matchedIds.has(s.id));
+    }, [fullSkeleton, matchedIds]);
+
+    // 4. Hydration Function (Called by Virtualizer)
+    const hydrateWindow = useCallback(async (visibleDates: string[]) => {
+        const datesToFetch: string[] = [];
+        const missingDatesToFake: string[] = [];
+
+        for (const date of visibleDates) {
+            if (entryCache[date] || isHydrating.current.has(date)) continue;
+
+            const skel = fullSkeleton.find(s => s.date === date);
+            if (skel && skel.id === null) {
+                missingDatesToFake.push(date);
+            } else if (skel) {
+                datesToFetch.push(date);
+            }
+        }
+
+        if (datesToFetch.length === 0 && missingDatesToFake.length === 0) return;
+
+        // Mark inflating
+        [...datesToFetch, ...missingDatesToFake].forEach(d => isHydrating.current.add(d));
+
+        let fetched: Entry[] = [];
+        if (datesToFetch.length > 0) {
+            fetched = await getEntriesByDates(datesToFetch);
+        }
+
+        setEntryCache(prev => {
+            const next = { ...prev };
+            // Add real entries
+            for (const e of fetched) {
+                next[e.date] = e;
+            }
+            // Add fake entries for missing days
+            for (const d of missingDatesToFake) {
+                const empty = newEntry('');
+                empty.date = d;
+                next[d] = empty;
+            }
+            return next;
+        });
+    }, [entryCache, fullSkeleton]);
+
+    // 5. Build final entries array for rendering (combines skeleton + cache)
+    // If not hydrated yet, we return a temporary empty entry so Virtualizer can mount *something*
+    const entries = useMemo(() => {
+        return visibleTimeline.map(skel => {
+            if (entryCache[skel.date]) return entryCache[skel.date];
+            const temp = newEntry('');
+            temp.date = skel.date;
+            temp.id = skel.id || temp.id;
+            return temp;
+        });
+    }, [visibleTimeline, entryCache]);
+
+    // 6. Save Logic
+    const entryCacheRef = useRef(entryCache);
+    useEffect(() => {
+        entryCacheRef.current = entryCache;
+    }, [entryCache]);
+
+    const handleSave = useCallback(async (date: string, body: string) => {
+        const originalEntry = entryCacheRef.current[date];
         if (!originalEntry) return;
 
-        const entryId = originalEntry.id;
-        setSavingIds((prev) => new Set(prev).add(entryId));
+        setSavingDates((prev) => new Set(prev).add(date));
 
         const entryToSave = {
             ...originalEntry,
@@ -82,61 +128,46 @@ export function useEntries({ scrollToActive }: UseEntriesOptions) {
             updatedAt: new Date().toISOString(),
         };
 
-        // Optimistic update
-        setEntries((prev) => {
-            const next = [...prev];
-            next[index] = entryToSave;
-            return next;
+        // Optimistic cache update
+        setEntryCache(prev => ({ ...prev, [date]: entryToSave }));
+
+        // Optimistic skeleton update if it was a "Missing" (id=null) entry
+        setFullSkeleton(prev => {
+            const idx = prev.findIndex(s => s.date === date);
+            if (idx >= 0 && prev[idx].id === null) {
+                const next = [...prev];
+                next[idx] = { ...next[idx], id: entryToSave.id };
+                return next;
+            }
+            return prev;
         });
 
         try {
             await upsertEntry(entryToSave);
         } catch (e) {
             console.error("Failed to save entry", e);
-            // Rollback using ref for latest state
-            setEntries((prev) => {
-                const next = [...prev];
-                next[index] = originalEntry;
-                return next;
-            });
+            // Rollback
+            setEntryCache(prev => ({ ...prev, [date]: originalEntry }));
         } finally {
-            setSavingIds((prev) => {
+            setSavingDates((prev) => {
                 const next = new Set(prev);
-                next.delete(entryId);
+                next.delete(date);
                 return next;
             });
         }
     }, []);
 
-    const loadMore = useCallback(async () => {
-        if (isLoadingMore || !hasMore) return;
-        setIsLoadingMore(true);
-        try {
-            // Count total items that are already persisted (skipping optimistic "today" placeholder if unpersisted)
-            const currentOffset = entries.length;
-            const newEntries = await getAllEntries(50, currentOffset);
-            if (newEntries.length < 50) {
-                setHasMore(false);
-            }
-            // Append only new entries that aren't already in state
-            setEntries(prev => [...prev, ...newEntries.filter(n => !prev.some(p => p.id === n.id))]);
-        } finally {
-            setIsLoadingMore(false);
-        }
-    }, [entries, isLoadingMore, hasMore]);
-
-    const isEntrySaving = useCallback((entryId: string) => {
-        return savingIds.has(entryId);
-    }, [savingIds]);
+    const isEntrySaving = useCallback((date: string) => {
+        return savingDates.has(date);
+    }, [savingDates]);
 
     return {
         entries,
-        activeIndex,
-        setActiveIndex,
+        searchQuery,
+        setSearchQuery,
         handleSave,
+        hydrateWindow,
         isEntrySaving,
-        isSaving: savingIds.size > 0,
-        loadMore,
-        hasMore,
+        isSaving: savingDates.size > 0,
     };
 }

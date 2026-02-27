@@ -5,6 +5,7 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "dependencies": {
+    "@tanstack/react-virtual": "^3.13.19",
     "@twoline/core": "workspace:*"
   },
   "peerDependencies": {
