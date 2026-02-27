@@ -1,5 +1,10 @@
 export function countSentences(text: string): number {
-  const terminators = text.match(/[.!?]+(\s|$)/g)
+  if (!text.trim()) return 0
+  // Strip out common abbreviations and single-letter abbreviations (like initials or D.C.) so their periods don't get counted
+  let cleaned = text.replace(/\b(?:Mr|Mrs|Ms|Dr|Prof|Sr|Jr|vs|etc|i\.e|e\.g|a\.m|p\.m|d\.c|u\.s)\./gi, '')
+  cleaned = cleaned.replace(/\b[A-Za-z]\./g, '')
+  // Match one or more punctuation marks, optional closing quote, followed by space or end of string
+  const terminators = cleaned.match(/[.!?]+(?:["']*(?:\s+|$))/g)
   return terminators ? terminators.length : 0
 }
 

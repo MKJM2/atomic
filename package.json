@@ -3,11 +3,16 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "dev:desktop": "pnpm --filter @twoline/desktop dev",
-    "build:desktop": "pnpm --filter @twoline/desktop build"
+    "dev": "pnpm --filter '@twoline/desktop' dev",
+    "build": "pnpm --filter '@twoline/desktop' build",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "workspaces": [
     "apps/*",
     "packages/*"
-  ]
+  ],
+  "devDependencies": {
+    "vitest": "^4.0.18"
+  }
 }
