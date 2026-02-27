@@ -44,7 +44,7 @@ export function ScrollMinimap({ entries, containerRef }: ScrollMinimapProps) {
     const updatePositions = () => {
       const { scrollHeight } = container;
       const positions: Record<string, number> = {};
-      
+
       entries.forEach((entry, index) => {
         const el = document.querySelector(`[data-index="${index}"]`) as HTMLElement;
         if (el) {
@@ -61,7 +61,7 @@ export function ScrollMinimap({ entries, containerRef }: ScrollMinimapProps) {
       handleScroll();
       updatePositions();
     });
-    
+
     // Initial and periodic calc to handle layout shifts
     handleScroll();
     updatePositions();
@@ -77,10 +77,10 @@ export function ScrollMinimap({ entries, containerRef }: ScrollMinimapProps) {
   // Calculate visible markers based on density
   useEffect(() => {
     const calculateMarkers = () => {
-      const height = window.innerHeight - 64; 
-      const itemHeight = 30; 
+      const height = window.innerHeight - 64;
+      const itemHeight = 30;
       const maxItems = Math.floor(height / itemHeight);
-      
+
       if (entries.length <= maxItems) {
         setVisibleEntries(entries);
       } else {
@@ -101,115 +101,14 @@ export function ScrollMinimap({ entries, containerRef }: ScrollMinimapProps) {
   };
 
   return (
-    <div 
+    <div
       className="scroll-minimap-container"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <style>{`
-        .scroll-minimap-container {
-          display: none; 
-          position: fixed;
-          left: 1.5rem;
-          top: 2rem;
-          bottom: 2rem;
-          width: 250px; 
-          z-index: 50;
-          padding: 1rem;
-          margin-left: -1rem;
-          background: transparent;
-          transition: width 0.4s ease-in-out, background 0.4s ease-in-out;
-          border-radius: 1rem;
-        }
-        @media (min-width: 960px) {
-          .scroll-minimap-container {
-            display: block; 
-          }
-        }
-        .scroll-minimap-container:hover {
-          width: 240px; 
-          background: rgba(255, 255, 255, 0.9);
-          backdrop-filter: blur(8px);
-        }
-        .dark .scroll-minimap-container:hover {
-          background: rgba(15, 17, 21, 0.9);
-        }
-        .scroll-track {
-          position: absolute;
-          left: 1.5rem; 
-          top: 1rem;
-          bottom: 1rem;
-          width: 4px;
-          background: #e5e7eb;
-          border-radius: 9999px;
-          transition: opacity 0.4s ease-in-out;
-        }
-        .dark .scroll-track {
-          background: #242930;
-        }
-        .scroll-thumb {
-          position: absolute;
-          left: 0;
-          width: 100%;
-          background: #9ca3af;
-          border-radius: 9999px;
-        }
-        .dark .scroll-thumb {
-          background: #6b7280;
-        }
-        .toc-list {
-          position: absolute;
-          left: 3.5rem; 
-          top: 1rem;
-          width: calc(100% - 3.5rem);
-          height: calc(100% - 2rem);
-          opacity: 0;
-          transition: opacity 0.4s ease-in-out;
-          pointer-events: none;
-        }
-        .scroll-minimap-container:hover .toc-list {
-          opacity: 1;
-          pointer-events: auto;
-        }
-        .toc-item-wrapper {
-          position: absolute;
-          left: 0;
-          width: 100%;
-          transform: translateY(-50%);
-        }
-        .toc-item {
-          font-size: 0.875rem;
-          color: #9ca3af;
-          cursor: pointer;
-          white-space: nowrap;
-          transition: color 0.2s;
-          padding: 2px 0;
-        }
-        .toc-item:hover {
-          color: #111827;
-          font-weight: 500;
-        }
-        .dark .toc-item:hover {
-          color: #f3f4f6;
-        }
-        .toc-marker {
-          position: absolute;
-          left: -2rem;
-          top: 50%;
-          width: 4px;
-          height: 4px;
-          border-radius: 50%;
-          background: #9ca3af;
-          transform: translateY(-50%);
-        }
-        .dark .toc-marker {
-          background: #6b7280;
-        }
-      `}</style>
-
       {/* Simple Track & Thumb */}
       <div className="scroll-track">
-        <div 
+        <div
           className="scroll-thumb"
           style={{ top: `${thumbTop}%`, height: `${thumbHeight}%` }}
         />
@@ -219,15 +118,15 @@ export function ScrollMinimap({ entries, containerRef }: ScrollMinimapProps) {
       <div className="toc-list">
         {visibleEntries.map((entry, index) => {
           const relativeTop = entryPositions[entry.id] || 0;
-          
+
           return (
-            <div 
+            <div
               key={entry.id}
               className="toc-item-wrapper"
               style={{ top: `${relativeTop}%` }}
             >
               <div className="toc-marker" />
-              <div 
+              <div
                 className="toc-item"
                 onClick={() => handleEntryClick(entries.findIndex(e => e.id === entry.id))}
               >

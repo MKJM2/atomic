@@ -10,7 +10,7 @@ export const PLACEHOLDERS = [
   "I saw a single star through the high leaves.",
   "I walked to the old bridge and back again.",
   "I sat by the window and simply was.",
-  "Capture a flicker of today’s light before it fades.",
+  "Capture a flicker of today's light before it fades.",
   "Even a small day is a story worth saving.",
   "Tell the page where your feet took you today.",
   "Trap a moment of quiet in this web of ink.",
@@ -65,7 +65,7 @@ export function JournalEntry({
     const textarea = textareaRef.current;
     if (textarea) {
       textarea.style.height = 'auto';
-      
+
       // If empty, temporarily use placeholder to measure required height
       const originalValue = textarea.value;
       if (!originalValue && placeholder) {
@@ -127,63 +127,15 @@ export function JournalEntry({
   const paddingY = layoutMode === 'minimalist' ? 0 : spacing * 1.5;
 
   return (
-    <section className="entry-section" onMouseEnter={onMouseEnter}>
-      <style>{`
-        .entry-section {
-          min-height: ${minHeight}vh;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          scroll-snap-align: center;
-          scroll-snap-stop: always;
-          box-sizing: border-box;
-          padding-top: ${paddingY}rem;
-          padding-bottom: ${paddingY}rem;
-          transition: padding 0.2s ease-out, min-height 0.3s ease-in-out;
-        }
-        .entry-date {
-          margin: 0;
-          font-size: 0.875rem;
-          color: #9ca3af;
-        }
-        .entry-editor {
-          line-height: 1.7;
-          width: 100%;
-          outline: none;
-          background: none;
-          border: none;
-          padding: 0;
-          font-family: inherit;
-          font-size: ${fontSize}px;
-          transition: color 0.3s, font-size 0.2s;
-          resize: none;
-          overflow: hidden;
-          display: block;
-          user-select: text;
-          -webkit-user-select: text;
-        }
-        .entry-editor.active {
-          color: #111827;
-          cursor: text;
-        }
-        .dark .entry-editor.active {
-          color: #f3f4f6;
-        }
-        .entry-editor.inactive {
-          color: #6b7280;
-          cursor: default;
-        }
-        .dark .entry-editor.inactive {
-          color: #4b5563;
-        }
-        .entry-editor::placeholder {
-          color: #d1d5db;
-        }
-        .dark .entry-editor::placeholder {
-          color: #374151;
-        }
-      `}</style>
-
+    <section
+      className="entry-section"
+      onMouseEnter={onMouseEnter}
+      style={{
+        minHeight: `${minHeight}vh`,
+        paddingTop: `${paddingY}rem`,
+        paddingBottom: `${paddingY}rem`,
+      }}
+    >
       <p className="entry-date">
         {new Date(entry.date + 'T00:00:00').toLocaleDateString('en-US', {
           weekday: 'long',
@@ -202,7 +154,8 @@ export function JournalEntry({
         placeholder={placeholder}
         className={`entry-editor ${isActive ? 'active' : 'inactive'}`}
         style={{
-          caretColor: isFocused ? (document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#111827') : 'transparent',
+          fontSize: `${fontSize}px`,
+          caretColor: isFocused ? 'var(--color-caret)' : 'transparent',
         }}
       />
     </section>
