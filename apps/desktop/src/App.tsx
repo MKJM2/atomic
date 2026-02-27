@@ -1,9 +1,23 @@
-import { useState, useRef, useCallback, useMemo } from 'react';
+import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { JournalEntry, SettingsPage, ScrollMinimap, PLACEHOLDERS } from '@twoline/ui';
 import { useSettings } from './hooks/useSettings';
 import { useEntries } from './hooks/useEntries';
 import { useNotifications } from './hooks/useNotifications';
 import { useKeyboardNav } from './hooks/useKeyboardNav';
+
+function ScrollTrigger({ onIntersect }: { onIntersect: () => void }) {
+  const triggerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = triggerRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) onIntersect();
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [onIntersect]);
+  return <div ref={triggerRef} className="h-10 w-full" />;
+}
 
 export default function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -35,7 +49,7 @@ export default function App() {
 
   // Hooks
   const { settings, isLoaded, setPreviewFontSize, updateSetting, effectiveFontSize } = useSettings();
-  const { entries, activeIndex, setActiveIndex, handleSave, isEntrySaving } = useEntries({ scrollToActive });
+  const { entries, activeIndex, setActiveIndex, handleSave, isEntrySaving, loadMore, hasMore } = useEntries({ scrollToActive });
   const { handleTestNotification } = useNotifications({
     notificationType: settings.notificationType,
     customNotificationMessage: settings.customNotificationMessage,
@@ -66,7 +80,7 @@ export default function App() {
         overscrollBehavior: isSnapEnabled ? 'none' : 'auto',
       }}
     >
-      <ScrollMinimap entries={entries} containerRef={scrollContainerRef} />
+      <ScrollMinimap entries={entries} containerRef={scrollContainerRef} entryRefs={entryRefs} />
 
       <div
         ref={scrollContainerRef}
@@ -90,49 +104,42 @@ export default function App() {
         </button>
 
         {entries.map((entry, index) => (
-          <main
+          <article
             key={entry.id}
-            ref={el => entryRefs.current[index] = el}
+            ref={(el) => {
+              entryRefs.current[index] = el;
+            }}
             data-index={index}
             data-entry-id={entry.id}
-            className="max-w-2xl mx-auto px-6"
+            className="w-full relative shrink-0 snap-start flex justify-center"
           >
-            <JournalEntry
-              entry={entry}
-              isActive={index === activeIndex}
-              isSaving={isEntrySaving(entry.id)}
-              layoutMode={layoutMode}
-              fontSize={effectiveFontSize}
-              spacing={settings.spacing}
-              onSave={(body) => handleSave(index, body)}
-              onMouseEnter={() => {
-                if (layoutMode !== 'minimalist') {
-                  setActiveIndex(index);
-                }
-              }}
-              placeholderIndex={placeholderIndices[index]}
-            />
-          </main>
+            <main className="max-w-2xl mx-auto px-6">
+              <JournalEntry
+                entry={entry}
+                isActive={index === activeIndex}
+                isSaving={isEntrySaving(entry.id)}
+                layoutMode={layoutMode}
+                fontSize={effectiveFontSize}
+                spacing={settings.spacing}
+                onSave={(body) => handleSave(index, body)}
+                onMouseEnter={() => {
+                  if (layoutMode !== 'minimalist') {
+                    setActiveIndex(index);
+                  }
+                }}
+                placeholderIndex={placeholderIndices[index]}
+              />
+            </main>
+          </article>
         ))}
+        {hasMore && <ScrollTrigger onIntersect={loadMore} />}
       </div>
 
       {isSettingsOpen && (
         <SettingsPage
-          isDarkMode={settings.isDarkMode}
-          onToggleDarkMode={(v) => updateSetting('isDarkMode', v)}
-          layoutMode={settings.layoutMode}
-          onLayoutModeChange={(v) => updateSetting('layoutMode', v)}
-          fontSize={settings.fontSize}
-          onFontSizeChange={(v) => updateSetting('fontSize', v)}
+          settings={settings}
+          updateSetting={updateSetting}
           onPreviewFontSizeChange={setPreviewFontSize}
-          spacing={settings.spacing}
-          onSpacingChange={(v) => updateSetting('spacing', v)}
-          isDeveloperMode={settings.isDeveloperMode}
-          onToggleDeveloperMode={(v) => updateSetting('isDeveloperMode', v)}
-          notificationType={settings.notificationType}
-          onNotificationTypeChange={(v) => updateSetting('notificationType', v)}
-          customNotificationMessage={settings.customNotificationMessage}
-          onCustomNotificationMessageChange={(v) => updateSetting('customNotificationMessage', v)}
           onTestNotification={handleTestNotification}
           onClose={() => setIsSettingsOpen(false)}
         />

@@ -1,16 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getSetting, setSetting } from '@twoline/db';
-import type { LayoutMode, NotificationType } from '@twoline/ui';
-
-export interface Settings {
-    isDarkMode: boolean;
-    layoutMode: LayoutMode;
-    fontSize: number;
-    spacing: number;
-    isDeveloperMode: boolean;
-    notificationType: NotificationType;
-    customNotificationMessage: string;
-}
+import type { LayoutMode, NotificationType, Settings } from '@twoline/ui';
 
 const DEFAULTS: Settings = {
     isDarkMode: false,
@@ -82,7 +72,7 @@ export function useSettings() {
     const updateSetting = useCallback(<K extends keyof Settings>(key: K, value: Settings[K]) => {
         setSettings((prev) => ({ ...prev, [key]: value }));
         setSetting(key, serialize(key, value)).catch((err) =>
-            console.error(`Failed to persist setting "${key}":`, err)
+            console.error(`Failed to persist setting "${key}": `, err)
         );
     }, []);
 

@@ -4,6 +4,7 @@ import type { Entry } from '@twoline/core';
 interface ScrollMinimapProps {
   entries: Entry[];
   containerRef: React.RefObject<HTMLDivElement>;
+  entryRefs: React.MutableRefObject<(HTMLElement | null)[]>;
 }
 
 function getOrdinal(n: number) {
@@ -20,7 +21,7 @@ function formatDate(dateString: string) {
   return `${day} ${month} ${year}`;
 }
 
-export function ScrollMinimap({ entries, containerRef }: ScrollMinimapProps) {
+export function ScrollMinimap({ entries, containerRef, entryRefs }: ScrollMinimapProps) {
   const [thumbTop, setThumbTop] = useState(0);
   const [thumbHeight, setThumbHeight] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
@@ -46,7 +47,7 @@ export function ScrollMinimap({ entries, containerRef }: ScrollMinimapProps) {
       const positions: Record<string, number> = {};
 
       entries.forEach((entry, index) => {
-        const el = document.querySelector(`[data-index="${index}"]`) as HTMLElement;
+        const el = entryRefs.current[index];
         if (el) {
           // Align markers with the CENTER of the journal entry
           const centerOffset = el.offsetTop + (el.offsetHeight / 2);
@@ -57,22 +58,22 @@ export function ScrollMinimap({ entries, containerRef }: ScrollMinimapProps) {
     };
 
     container.addEventListener('scroll', handleScroll);
-    window.addEventListener('resize', () => {
+
+    const observer = new ResizeObserver(() => {
       handleScroll();
       updatePositions();
     });
+    observer.observe(container);
 
-    // Initial and periodic calc to handle layout shifts
+    // Initial calc to handle layout shifts
     handleScroll();
     updatePositions();
-    const interval = setInterval(updatePositions, 1000);
 
     return () => {
       container.removeEventListener('scroll', handleScroll);
-      window.removeEventListener('resize', handleScroll);
-      clearInterval(interval);
+      observer.disconnect();
     };
-  }, [containerRef, entries]);
+  }, [containerRef, entries, entryRefs]);
 
   // Calculate visible markers based on density
   useEffect(() => {
@@ -96,8 +97,8 @@ export function ScrollMinimap({ entries, containerRef }: ScrollMinimapProps) {
   }, [entries]);
 
   const handleEntryClick = (index: number) => {
-    const element = document.querySelector(`[data-index="${index}"]`);
-    element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const el = entryRefs.current[index];
+    el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   };
 
   return (

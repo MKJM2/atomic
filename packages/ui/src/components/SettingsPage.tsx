@@ -3,22 +3,20 @@ import React, { useState, useRef, useEffect } from 'react';
 export type LayoutMode = 'minimalist' | 'default' | 'dense';
 export type NotificationType = 'random' | 'custom';
 
-interface SettingsPageProps {
+export interface Settings {
   isDarkMode: boolean;
-  onToggleDarkMode: (enabled: boolean) => void;
   layoutMode: LayoutMode;
-  onLayoutModeChange: (mode: LayoutMode) => void;
   fontSize: number;
-  onFontSizeChange: (size: number) => void;
-  onPreviewFontSizeChange: (size: number | null) => void;
   spacing: number;
-  onSpacingChange: (value: number) => void;
   isDeveloperMode: boolean;
-  onToggleDeveloperMode: (enabled: boolean) => void;
   notificationType: NotificationType;
-  onNotificationTypeChange: (type: NotificationType) => void;
   customNotificationMessage: string;
-  onCustomNotificationMessageChange: (msg: string) => void;
+}
+
+interface SettingsPageProps {
+  settings: Settings;
+  updateSetting: <K extends keyof Settings>(key: K, value: Settings[K]) => void;
+  onPreviewFontSizeChange: (size: number | null) => void;
   onTestNotification: () => void;
   onClose: () => void;
 }
@@ -26,24 +24,20 @@ interface SettingsPageProps {
 const FONT_SIZE_OPTIONS = [12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 48];
 
 export function SettingsPage({
-  isDarkMode,
-  onToggleDarkMode,
-  layoutMode,
-  onLayoutModeChange,
-  fontSize,
-  onFontSizeChange,
+  settings,
+  updateSetting,
   onPreviewFontSizeChange,
-  spacing,
-  onSpacingChange,
-  isDeveloperMode,
-  onToggleDeveloperMode,
-  notificationType,
-  onNotificationTypeChange,
-  customNotificationMessage,
-  onCustomNotificationMessageChange,
   onTestNotification,
   onClose
 }: SettingsPageProps) {
+  const { isDarkMode, layoutMode, fontSize, spacing, isDeveloperMode, notificationType, customNotificationMessage } = settings;
+  const onToggleDarkMode = (v: boolean) => updateSetting('isDarkMode', v);
+  const onLayoutModeChange = (v: LayoutMode) => updateSetting('layoutMode', v);
+  const onFontSizeChange = (v: number) => updateSetting('fontSize', v);
+  const onSpacingChange = (v: number) => updateSetting('spacing', v);
+  const onToggleDeveloperMode = (v: boolean) => updateSetting('isDeveloperMode', v);
+  const onNotificationTypeChange = (v: NotificationType) => updateSetting('notificationType', v);
+  const onCustomNotificationMessageChange = (v: string) => updateSetting('customNotificationMessage', v);
   const [isAdjustingFontSize, setIsAdjustingFontSize] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
