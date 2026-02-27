@@ -7,6 +7,7 @@ export async function upsertEntry(entry: Entry): Promise<void> {
     `INSERT INTO entries (id, date, body, created_at, updated_at, synced_at, is_deleted)
      VALUES (?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(date) DO UPDATE SET
+       id = excluded.id,
        body = excluded.body,
        updated_at = excluded.updated_at`,
     [
@@ -44,20 +45,30 @@ export async function getLast365Dates(): Promise<string[]> {
   const rows = await db.select<{ date: string }[]>(
     `SELECT date FROM entries
      WHERE is_deleted = 0
-       AND date >= date('now', '-365 days')
+       AND date >= date('now', 'localtime', '-365 days')
      ORDER BY date ASC`
   )
   return rows.map((r) => r.date)
 }
 
-export async function getAllEntries(): Promise<Entry[]> {
+export async function getAllEntries(limit: number = 50, offset: number = 0): Promise<Entry[]> {
   const db = await getDb()
   const rows = await db.select<any[]>(
     `SELECT * FROM entries
      WHERE is_deleted = 0
-     ORDER BY date DESC`
+     ORDER BY date DESC
+     LIMIT ? OFFSET ?`,
+    [limit, offset]
   )
   return rows.map(rowToEntry)
+}
+
+export async function getEntryCount(): Promise<number> {
+  const db = await getDb()
+  const rows = await db.select<{ count: number }[]>(
+    'SELECT COUNT(*) as count FROM entries WHERE is_deleted = 0'
+  )
+  return rows[0].count
 }
 
 function rowToEntry(row: any): Entry {
