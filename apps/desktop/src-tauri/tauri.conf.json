@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "desktop",
+  "productName": "Twoline",
   "version": "0.1.0",
   "identifier": "app.twoline.journal",
   "build": {
@@ -15,17 +15,20 @@
         "title": "Twoline",
         "width": 800,
         "height": 600,
-        "hiddenTitle": false,
+        "hiddenTitle": true,
         "titleBarStyle": "Overlay"
       }
     ],
     "security": {
-      "csp": "default-src 'self' tauri:; connect-src 'self' tauri:"
+      "csp": "default-src 'self' tauri:; connect-src 'self' tauri:; style-src 'self' 'unsafe-inline'"
     }
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": [
+      "dmg",
+      "app"
+    ],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

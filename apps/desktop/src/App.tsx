@@ -24,15 +24,24 @@ export default function App() {
   const entryRefs = useRef<(HTMLElement | null)[]>([]);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // Generate stable placeholder indices to avoid repeats in a row
+  // Generate stable placeholder indices deterministically
   const placeholderIndices = useMemo(() => {
+    // Simple seeded PRNG (xorshift)
+    let seed = 12345;
+    function random() {
+      seed ^= seed << 13;
+      seed ^= seed >> 17;
+      seed ^= seed << 5;
+      return (seed >>> 0) / 4294967296;
+    }
+
     const indices: number[] = [];
     let lastIndex = -1;
     const count = PLACEHOLDERS.length;
     for (let i = 0; i < 1000; i++) {
       let nextIndex;
       do {
-        nextIndex = Math.floor(Math.random() * count);
+        nextIndex = Math.floor(random() * count);
       } while (nextIndex === lastIndex);
       indices.push(nextIndex);
       lastIndex = nextIndex;
