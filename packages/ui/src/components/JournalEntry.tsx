@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react';
+import { HighlightedText } from './HighlightedText';
 import type { Entry } from '@twoline/core';
 import type { LayoutMode } from './SettingsPage';
 
@@ -30,6 +31,7 @@ interface JournalEntryProps {
   onSave: (body: string) => void;
   onMouseEnter?: () => void;
   placeholderIndex?: number;
+  searchQuery?: string;
 }
 
 export function JournalEntry({
@@ -41,7 +43,8 @@ export function JournalEntry({
   spacing,
   onSave,
   onMouseEnter,
-  placeholderIndex
+  placeholderIndex,
+  searchQuery,
 }: JournalEntryProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [val, setVal] = useState(entry.body);
@@ -89,6 +92,11 @@ export function JournalEntry({
     return () => clearTimeout(timeout);
   }, [adjustHeight]);
 
+  useEffect(() => {
+    if (isFocused && textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  }, [isFocused]);
   function handleChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
     setVal(e.target.value);
   }
@@ -136,21 +144,41 @@ export function JournalEntry({
           day: 'numeric',
         })}
       </p>
-      <textarea
-        ref={textareaRef}
-        value={val}
-        onChange={handleChange}
-        readOnly={isSaving}
-        onFocus={handleFocus}
-        onBlur={handleBlur}
-        onKeyDown={handleKeyDown}
-        placeholder={placeholder}
-        className={`entry-editor ${isActive ? 'active' : 'inactive'}`}
-        style={{
-          fontSize: `${fontSize}px`,
-          caretColor: isFocused ? 'var(--color-caret)' : 'transparent',
-        }}
-      />
+      <div className="relative w-full">
+        {/* Background Layer: Shows the text and the highlights */}
+        <div
+          className={`entry-editor ${isActive || isFocused ? 'active' : 'inactive'} whitespace-pre-wrap pointer-events-none absolute inset-0`}
+          style={{
+            fontSize: `${fontSize}px`,
+            zIndex: 0,
+          }}
+        >
+          <HighlightedText 
+            text={val} 
+            highlight={searchQuery} 
+          />
+        </div>
+
+        {/* Foreground Layer: The actual editor (transparent when searching so highlights show through) */}
+        <textarea
+          ref={textareaRef}
+          value={val}
+          onChange={handleChange}
+          readOnly={isSaving}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          onKeyDown={handleKeyDown}
+          placeholder={isFocused ? '' : placeholder}
+          className={`entry-editor ${isActive || isFocused ? 'active' : 'inactive'} relative z-10`}
+          style={{
+            fontSize: `${fontSize}px`,
+            caretColor: 'var(--color-caret)',
+            background: 'transparent',
+            color: searchQuery ? 'transparent' : 'inherit',
+            WebkitTextFillColor: searchQuery ? 'transparent' : 'inherit',
+          }}
+        />
+      </div>
     </section>
   );
 }

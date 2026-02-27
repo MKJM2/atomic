@@ -110,6 +110,13 @@ body,
   color: var(--color-placeholder);
 }
 
+/* ─── Search Highlight ─── */
+.search-highlight {
+  text-decoration: underline;
+  text-decoration-color: #10b981; /* emerald-500 */
+  text-decoration-thickness: 2px;
+  text-underline-offset: 2px;
+}
 /* ─── Settings ─── */
 .settings-overlay {
   position: fixed;

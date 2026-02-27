@@ -62,12 +62,11 @@ export async function getEntriesByDates(dates: string[]): Promise<Entry[]> {
 export async function searchEntries(query: string): Promise<string[]> {
   if (!query.trim()) return []
   const db = await getDb()
-  // FTS5 MATCH clause requires special escaping if user types invalid characters,
-  // but simpler queries usually work as-is. We append a wildcard for partial matches.
-  // Note: fts5 uses rowid to map back to original table id. Since our id is TEXT, we mapped rowid='id'
+  // Use LIKE on the base table for reliable substring matching of any length.
+  // This avoids the 3-character threshold limitation of the FTS5 trigram index.
   const rows = await db.select<{ id: string }[]>(
-    `SELECT rowid as id FROM entries_fts WHERE entries_fts MATCH ? ORDER BY rank`,
-    [`${query}*`]
+    `SELECT id FROM entries WHERE is_deleted = 0 AND body LIKE ? ORDER BY date DESC`,
+    [`%${query}%`]
   )
   return rows.map(r => r.id)
 }

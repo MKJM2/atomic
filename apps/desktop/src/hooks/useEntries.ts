@@ -9,13 +9,56 @@ export function useEntries() {
     const [entryCache, setEntryCache] = useState<Record<string, Entry>>({});
     const [savingDates, setSavingDates] = useState<Set<string>>(new Set());
 
+    const entryCacheRef = useRef(entryCache);
+    useEffect(() => {
+        entryCacheRef.current = entryCache;
+    }, [entryCache]);
     const isHydrating = useRef<Set<string>>(new Set());
 
     // 1. Initial Load: Build the contiguous full skeleton
     useEffect(() => {
         async function loadSkeleton() {
-            const dbSkeletons = await getAllEntrySkeletons();
+            let dbSkeletons = await getAllEntrySkeletons();
             const todayStr = todayLocalDate();
+
+            // Temporary seeding logic requested by user to test hydration
+            if (dbSkeletons.length < 50) {
+                let seedDate = new Date(todayStr + 'T12:00:00');
+                seedDate.setDate(seedDate.getDate() - 10);
+
+                const quotes = [
+                    "The quieter you become, the more you are able to hear.",
+                    "Do what you can, with what you have, where you are.",
+                    "It always seems impossible until it's done.",
+                    "Success is not final, failure is not fatal.",
+                    "Happiness is not something ready made."
+                ];
+
+                for (let i = 0; i < 50; i++) {
+                    const dStr = seedDate.toISOString().split('T')[0];
+                    const uuid = crypto.randomUUID();
+                    const body = quotes[Math.floor(Math.random() * quotes.length)] + ` (Auto-seeded Entry #${50 - i})`;
+                    const now = new Date().toISOString();
+
+                    try {
+                        await upsertEntry({
+                            id: uuid,
+                            date: dStr,
+                            body: body,
+                            createdAt: now,
+                            updatedAt: now,
+                            syncedAt: null,
+                            isDeleted: false
+                        });
+                    } catch (e) {
+                        // ignore conflicts if partially seeded
+                    }
+                    seedDate.setDate(seedDate.getDate() - 2); // create gaps
+                }
+
+                // Reload skeletons after seeding
+                dbSkeletons = await getAllEntrySkeletons();
+            }
 
             const dbMap = new Map<string, string>();
             for (const s of dbSkeletons) {
@@ -62,7 +105,7 @@ export function useEntries() {
         const missingDatesToFake: string[] = [];
 
         for (const date of visibleDates) {
-            if (entryCache[date] || isHydrating.current.has(date)) continue;
+            if (entryCacheRef.current[date] || isHydrating.current.has(date)) continue;
 
             const skel = fullSkeleton.find(s => s.date === date);
             if (skel && skel.id === null) {
@@ -77,26 +120,32 @@ export function useEntries() {
         // Mark inflating
         [...datesToFetch, ...missingDatesToFake].forEach(d => isHydrating.current.add(d));
 
-        let fetched: Entry[] = [];
-        if (datesToFetch.length > 0) {
-            fetched = await getEntriesByDates(datesToFetch);
-        }
+        try {
+            let fetched: Entry[] = [];
+            if (datesToFetch.length > 0) {
+                fetched = await getEntriesByDates(datesToFetch);
+            }
 
-        setEntryCache(prev => {
-            const next = { ...prev };
-            // Add real entries
-            for (const e of fetched) {
-                next[e.date] = e;
-            }
-            // Add fake entries for missing days
-            for (const d of missingDatesToFake) {
-                const empty = newEntry('');
-                empty.date = d;
-                next[d] = empty;
-            }
-            return next;
-        });
-    }, [entryCache, fullSkeleton]);
+            setEntryCache(prev => {
+                const next = { ...prev };
+                for (const e of fetched) {
+                    next[e.date] = e;
+                }
+                for (const d of missingDatesToFake) {
+                    const empty = newEntry('');
+                    empty.date = d;
+                    next[d] = empty;
+                }
+                return next;
+            });
+        } catch (error) {
+            console.error("Hydration failed", error);
+        } finally {
+            // Important: Clear the hydrating flag even on error so we can retry
+            datesToFetch.forEach(d => isHydrating.current.delete(d));
+            missingDatesToFake.forEach(d => isHydrating.current.delete(d));
+        }
+    }, [fullSkeleton]);
 
     // 5. Build final entries array for rendering (combines skeleton + cache)
     // If not hydrated yet, we return a temporary empty entry so Virtualizer can mount *something*
@@ -111,14 +160,22 @@ export function useEntries() {
     }, [visibleTimeline, entryCache]);
 
     // 6. Save Logic
-    const entryCacheRef = useRef(entryCache);
-    useEffect(() => {
-        entryCacheRef.current = entryCache;
-    }, [entryCache]);
 
     const handleSave = useCallback(async (date: string, body: string) => {
-        const originalEntry = entryCacheRef.current[date];
-        if (!originalEntry) return;
+        let originalEntry = entryCacheRef.current[date];
+        if (!originalEntry) {
+            // Typing into a new/empty day that wasn't previously cached
+            const temp = newEntry('');
+            temp.date = date;
+
+            // Check skeleton to see if we know the ID already, else use random UUID
+            setFullSkeleton(prev => {
+                const skel = prev.find(s => s.date === date);
+                if (skel && skel.id) temp.id = skel.id;
+                return prev;
+            })
+            originalEntry = temp;
+        }
 
         setSavingDates((prev) => new Set(prev).add(date));
 
