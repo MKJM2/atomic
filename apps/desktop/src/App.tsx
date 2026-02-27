@@ -169,7 +169,7 @@ export default function App() {
       body,
       updatedAt: new Date().toISOString(),
     };
-    
+
     const newEntries = [...entries];
     newEntries[index] = entryToSave;
     setEntries(newEntries);
@@ -195,9 +195,9 @@ export default function App() {
       if (notificationType === 'random') {
         body = PLACEHOLDERS[Math.floor(Math.random() * PLACEHOLDERS.length)];
       }
-      sendNotification({ 
-        title: 'twoline', 
-        body: body 
+      sendNotification({
+        title: 'twoline',
+        body: body
       });
     }
   }
@@ -207,9 +207,8 @@ export default function App() {
 
   return (
     <div
-      className={`relative h-screen transition-colors duration-300 ${
-        isDarkMode ? 'bg-[#0f1115] text-gray-100' : 'bg-white text-[#111827]'
-      }`}
+      className={`relative h-screen transition-colors duration-300 ${isDarkMode ? 'bg-[#0f1115] text-gray-100' : 'bg-white text-[#111827]'
+        }`}
       style={{
         fontFamily: '"Iowan Old Style", "Apple Garamond", Baskerville, "Times New Roman", "Droid Serif", Times, "Source Serif Pro", serif',
         overscrollBehavior: isSnapEnabled ? 'none' : 'auto',
@@ -217,26 +216,24 @@ export default function App() {
     >
       <ScrollMinimap entries={entries} containerRef={scrollContainerRef} />
 
-      <div 
+      <div
         ref={scrollContainerRef}
-        className="h-full overflow-y-auto scroll-smooth" 
-        style={{ 
-          scrollSnapType: isSnapEnabled ? 'y mandatory' : 'none', 
+        className="h-full overflow-y-auto scroll-smooth hide-scrollbar"
+        style={{
+          scrollSnapType: isSnapEnabled ? 'y mandatory' : 'none',
           overscrollBehavior: isSnapEnabled ? 'none' : 'auto',
-          scrollbarWidth: 'none'
         }}
       >
-        <style>{`.h-full::-webkit-scrollbar { display: none; }`}</style>
 
         {/* Settings Gear */}
-        <button 
+        <button
           onClick={() => setIsSettingsOpen(true)}
           className="fixed top-6 right-6 z-50 p-2 text-gray-300 hover:text-gray-600 transition-colors cursor-pointer dark:text-gray-600 dark:hover:text-gray-400"
           aria-label="Settings"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
-            <circle cx="12" cy="12" r="3"/>
+            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+            <circle cx="12" cy="12" r="3" />
           </svg>
         </button>
 
@@ -268,9 +265,9 @@ export default function App() {
       </div>
 
       {isSettingsOpen && (
-        <SettingsPage 
-          isDarkMode={isDarkMode} 
-          onToggleDarkMode={setIsDarkMode} 
+        <SettingsPage
+          isDarkMode={isDarkMode}
+          onToggleDarkMode={setIsDarkMode}
           layoutMode={layoutMode}
           onLayoutModeChange={setLayoutMode}
           fontSize={fontSize}
@@ -285,7 +282,7 @@ export default function App() {
           customNotificationMessage={customNotificationMessage}
           onCustomNotificationMessageChange={setCustomNotificationMessage}
           onTestNotification={handleTestNotification}
-          onClose={() => setIsSettingsOpen(false)} 
+          onClose={() => setIsSettingsOpen(false)}
         />
       )}
     </div>
