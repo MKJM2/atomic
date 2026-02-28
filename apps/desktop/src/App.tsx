@@ -107,7 +107,7 @@ export default function App() {
 
   return (
     <div
-      className={`relative h-screen transition-colors duration-300 ${settings.isDarkMode ? 'dark bg-[#0f1115] text-gray-100' : 'bg-white text-gray-900'}`}
+      className={`relative h-screen transition-colors duration-300 bg-bg-primary text-text-primary ${settings.isDarkMode ? 'dark' : ''}`}
       style={{
         fontFamily: '"Iowan Old Style", "Apple Garamond", Baskerville, "Times New Roman", "Droid Serif", Times, "Source Serif Pro", serif',
         overscrollBehavior: isSnapEnabled ? 'none' : 'auto',
@@ -137,7 +137,7 @@ export default function App() {
                 }}
                 onBlur={() => { if (!searchQuery) setIsSearchExpanded(false); }}
                 placeholder="Search..."
-                className="pr-2 py-1 bg-transparent border-b border-gray-300 dark:border-gray-700 focus:border-emerald-500 transition-all outline-none text-sm w-full text-right placeholder-gray-300 dark:placeholder-gray-600 text-gray-900 dark:text-gray-100"
+                className="pr-2 py-1 bg-transparent border-b border-border dark:border-border focus:border-accent transition-all outline-none text-sm w-full text-right placeholder-text-muted text-text-primary"
               />
             </div>
             <button

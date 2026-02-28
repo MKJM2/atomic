@@ -145,21 +145,21 @@ export function JournalEntry({
         })}
       </p>
       <div className="relative w-full">
-        {/* Background Layer: Shows the text and the highlights */}
-        <div
-          className={`entry-editor ${isActive || isFocused ? 'active' : 'inactive'} whitespace-pre-wrap pointer-events-none absolute inset-0`}
-          style={{
-            fontSize: `${fontSize}px`,
-            zIndex: 0,
-          }}
-        >
-          <HighlightedText 
-            text={val} 
-            highlight={searchQuery} 
-          />
-        </div>
+        {/* Background Layer: Shows search highlights if active */}
+        {(searchQuery || (entry.isMissing && !val.trim() && !isFocused)) && (
+          <div
+            className={`entry-editor ${isActive || isFocused ? 'active' : 'inactive'} whitespace-pre-wrap pointer-events-none absolute inset-0`}
+            style={{ fontSize: `${fontSize}px`, zIndex: 0 }}
+          >
+            {searchQuery ? (
+              <HighlightedText text={val} highlight={searchQuery} />
+            ) : (
+              <span style={{ color: 'rgba(239, 68, 68, 0.4)' }} className="font-medium italic tracking-wide">Missing</span>
+            )}
+          </div>
+        )}
 
-        {/* Foreground Layer: The actual editor (transparent when searching so highlights show through) */}
+        {/* Foreground Layer: The editor */}
         <textarea
           ref={textareaRef}
           value={val}
@@ -168,14 +168,15 @@ export function JournalEntry({
           onFocus={handleFocus}
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}
-          placeholder={isFocused ? '' : placeholder}
+          placeholder={isFocused || (entry.isMissing && !val.trim()) ? '' : placeholder}
           className={`entry-editor ${isActive || isFocused ? 'active' : 'inactive'} relative z-10`}
           style={{
             fontSize: `${fontSize}px`,
             caretColor: 'var(--color-caret)',
             background: 'transparent',
-            color: searchQuery ? 'transparent' : 'inherit',
-            WebkitTextFillColor: searchQuery ? 'transparent' : 'inherit',
+            /* Only override color when searching to allow highlights to show through */
+            color: searchQuery ? 'transparent' : undefined,
+            WebkitTextFillColor: searchQuery ? 'transparent' : undefined,
           }}
         />
       </div>

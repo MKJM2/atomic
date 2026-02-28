@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
-/* ─── Design Tokens ─── */
-:root {
+@theme {
+  /* ─── Design Tokens ─── */
   --color-text-primary: #111827;
   --color-text-secondary: #6b7280;
   --color-text-muted: #9ca3af;
@@ -22,6 +22,7 @@
   --color-minimap-hover-bg: rgba(255, 255, 255, 0.9);
 }
 
+/* ─── Dark Mode Overrides ─── */
 .dark {
   --color-text-primary: #f3f4f6;
   --color-text-secondary: #9ca3af;
@@ -40,6 +41,9 @@
   --color-thumb: #6b7280;
   --color-minimap-hover-bg: rgba(15, 17, 21, 0.9);
 }
+
+/* Scan UI package components for Tailwind classes */
+@source "../../packages/ui/src/**/*.{ts,tsx}";
 
 /* ─── Base Reset ─── */
 html,

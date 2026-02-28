@@ -6,6 +6,7 @@ export interface Entry {
   updatedAt: string
   syncedAt: string | null
   isDeleted: boolean
+  isMissing?: boolean;
 }
 
 export function todayLocalDate(): string {

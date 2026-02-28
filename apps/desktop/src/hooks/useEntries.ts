@@ -134,6 +134,7 @@ export function useEntries() {
                 for (const d of missingDatesToFake) {
                     const empty = newEntry('');
                     empty.date = d;
+                    empty.isMissing = true;
                     next[d] = empty;
                 }
                 return next;
@@ -155,6 +156,7 @@ export function useEntries() {
             const temp = newEntry('');
             temp.date = skel.date;
             temp.id = skel.id || temp.id;
+            if (skel.id === null) temp.isMissing = true;
             return temp;
         });
     }, [visibleTimeline, entryCache]);
