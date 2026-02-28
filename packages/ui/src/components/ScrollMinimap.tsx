@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
-import type { Entry } from '@twoline/core';
-import type { Virtualizer } from '@tanstack/react-virtual';
+import { useEffect, useState, useRef } from "react";
+import type { Entry } from "@twoline/core";
+import type { Virtualizer } from "@tanstack/react-virtual";
 
-const MAX_MINIMAP_ITEMS = 25;
+const MINIMAP_ITEM_HEIGHT = 50;
+const MIN_THUMB_HEIGHT_PX = 50;
 
 interface ScrollMinimapProps {
   entries: Entry[];
@@ -17,131 +18,174 @@ function getOrdinal(n: number) {
 }
 
 function formatDate(dateString: string) {
-  const date = new Date(dateString + 'T00:00:00');
+  const date = new Date(dateString + "T00:00:00");
   const day = getOrdinal(date.getDate());
-  const month = date.toLocaleDateString('en-US', { month: 'long' });
+  const month = date.toLocaleDateString("en-US", { month: "long" });
   const year = date.getFullYear();
   return `${day} ${month} ${year}`;
 }
 
-export function ScrollMinimap({ entries, activeIndex, virtualizer }: ScrollMinimapProps) {
+export function ScrollMinimap({
+  entries,
+  activeIndex,
+  virtualizer,
+}: ScrollMinimapProps) {
   const [isHovered, setIsHovered] = useState(false);
-  const [thumbTop, setThumbTop] = useState(0);
-  const [thumbHeight, setThumbHeight] = useState(0);
+  const [thumbTopPx, setThumbTopPx] = useState(0);
+  const [thumbHeightPx, setThumbHeightPx] = useState(0);
+  const [minimapScrollOffset, setMinimapScrollOffset] = useState(0);
+  const [panelHeight, setPanelHeight] = useState(window.innerHeight);
+  const panelRef = useRef<HTMLDivElement>(null);
 
-  // Sync basic thumb geometry with virtualization state
   useEffect(() => {
-    const handleScroll = () => {
-      const scrollEl = virtualizer.scrollElement;
-      if (!scrollEl) return;
+    const el = panelRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => {
+      setPanelHeight(entry.contentRect.height);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
+  useEffect(() => {
+    const scrollEl = virtualizer.scrollElement;
+    if (!scrollEl) return;
+
+    const compute = () => {
       const { scrollTop, scrollHeight, clientHeight } = scrollEl;
-      if (scrollHeight <= 0) return;
 
-      const scrollRatio = scrollTop / scrollHeight;
-      const visibleRatio = clientHeight / scrollHeight;
+      if (scrollHeight <= clientHeight || clientHeight === 0) {
+        setThumbTopPx(0);
+        setThumbHeightPx(panelHeight);
+        setMinimapScrollOffset(0);
+        return;
+      }
 
-      setThumbTop(scrollRatio * 100);
-      setThumbHeight(Math.max(visibleRatio * 100, 5)); // Min 5% height
+      const H_doc = scrollHeight;
+      const H_view = clientHeight;
+      const H_panel = panelHeight;
+      const H_minimap_content = entries.length * MINIMAP_ITEM_HEIGHT;
+
+      const scrollableHeight = Math.max(1, H_doc - H_view);
+      const scrollRatio = Math.max(
+        0,
+        Math.min(1, scrollTop / scrollableHeight),
+      );
+
+      const thumbHeight = Math.max(
+        (H_view / H_doc) * H_panel,
+        MIN_THUMB_HEIGHT_PX,
+      );
+
+      const thumbTop = scrollRatio * (H_panel - thumbHeight);
+
+      let minimapScroll = 0;
+      if (H_minimap_content > H_panel) {
+        minimapScroll = scrollRatio * (H_minimap_content - H_panel);
+      }
+
+      setThumbTopPx(thumbTop);
+      setThumbHeightPx(thumbHeight);
+      setMinimapScrollOffset(minimapScroll);
     };
 
-    const scrollEl = virtualizer.scrollElement;
-    scrollEl?.addEventListener('scroll', handleScroll);
-    handleScroll();
+    scrollEl.addEventListener("scroll", compute);
+    compute();
+    return () => scrollEl.removeEventListener("scroll", compute);
+  }, [virtualizer, entries.length, panelHeight]);
 
-    return () => scrollEl?.removeEventListener('scroll', handleScroll);
-  }, [virtualizer]);
 
-  // Calculate sliding window bounds
-  const totalEntries = entries.length;
-  if (totalEntries === 0) return null;
+  if (entries.length === 0) return null;
 
-  const halfWindow = Math.floor(MAX_MINIMAP_ITEMS / 2);
-  let startIndex = activeIndex - halfWindow;
-  let endIndex = activeIndex + halfWindow;
+  const firstVisible = Math.max(
+    0,
+    Math.floor(minimapScrollOffset / MINIMAP_ITEM_HEIGHT) - 1,
+  );
+  const lastVisible = Math.min(
+    entries.length - 1,
+    Math.ceil((minimapScrollOffset + panelHeight) / MINIMAP_ITEM_HEIGHT) + 1,
+  );
 
-  // Clamp to bounds
-  if (startIndex < 0) {
-    endIndex += Math.abs(startIndex);
-    startIndex = 0;
-  }
-  if (endIndex >= totalEntries) {
-    startIndex -= (endIndex - totalEntries + 1);
-    endIndex = totalEntries - 1;
-  }
-
-  // Final safety clamp
-  startIndex = Math.max(0, startIndex);
-  endIndex = Math.min(totalEntries - 1, endIndex);
-
-  const windowEntries = entries.slice(startIndex, endIndex + 1);
-  const hiddenTopCount = startIndex;
-  const hiddenBottomCount = totalEntries - 1 - endIndex;
+  const visibleEntries = entries.slice(firstVisible, lastVisible + 1);
 
   const handleEntryClick = (index: number) => {
-    virtualizer.scrollToIndex(index, { behavior: 'smooth', align: 'center' });
+    virtualizer.scrollToIndex(index, { behavior: "smooth", align: "center" });
   };
 
   return (
     <div
+      ref={panelRef}
       className="scroll-minimap-container"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div className="scroll-track">
+      <div className="scroll-track" style={{ position: "relative" }}>
         <div
           className="scroll-thumb"
-          style={{ top: `${thumbTop}%`, height: `${thumbHeight}%` }}
+          style={{
+            position: "absolute",
+            top: `${thumbTopPx}px`,
+            height: `${thumbHeightPx}px`,
+            width: "100%",
+          }}
         />
       </div>
 
-      <div className="toc-list" style={{ opacity: isHovered ? 1 : 0, transition: 'opacity 0.2s' }}>
+      <div
+        className="toc-list"
+        style={{
+          position: "relative",
+          overflow: "hidden",
+          height: "100%",
+          opacity: isHovered ? 1 : 0,
+          pointerEvents: isHovered ? "auto" : "none",
+          transition: "opacity 0.2s",
+        }}
+      >
+        {visibleEntries.map((entry, i) => {
+          const absoluteIndex = firstVisible + i;
+          const isMissing = !entry.id && !entry.body;
+          const isActive = absoluteIndex === activeIndex;
 
-        {hiddenTopCount > 0 && (
-          <div className="text-xs text-gray-400 dark:text-gray-500 mb-2 pl-4 italic">
-            ... and {hiddenTopCount} more entries
-          </div>
-        )}
+          const topPx =
+            absoluteIndex * MINIMAP_ITEM_HEIGHT - minimapScrollOffset;
 
-        <div className="flex flex-col flex-1 h-full justify-between py-2 relative">
-          {windowEntries.map((entry, relativeIndex) => {
-            const absoluteIndex = startIndex + relativeIndex;
-            const isMissing = !entry.id && !entry.body;
-            const isActive = absoluteIndex === activeIndex;
-
-            // Compute roughly evenly distributed top %
-            const percent = windowEntries.length > 1
-              ? (relativeIndex / (windowEntries.length - 1)) * 100
-              : 50;
-
-            return (
+          return (
+            <div
+              key={entry.date}
+              className="toc-item-wrapper"
+              style={{
+                position: "absolute",
+                top: `${topPx}px`,
+                height: `${MINIMAP_ITEM_HEIGHT}px`,
+                left: 0,
+                right: 0,
+                display: "flex",
+                alignItems: "center",
+              }}
+            >
               <div
-                key={entry.date}
-                className="toc-item-wrapper"
-                style={{ top: `${percent}%` }}
+                className={`toc-marker ${isActive
+                  ? "bg-emerald-500 scale-150"
+                  : isMissing
+                    ? "bg-red-500/30"
+                    : "bg-gray-400 dark:bg-gray-600"
+                  }`}
+                style={{ transition: "all 0.2s" }}
+              />
+              <button
+                onClick={() => handleEntryClick(absoluteIndex)}
+                className={`toc-item ml-4 pl-2 border-l-2 transition-all block w-full text-left truncate
+                  ${isActive
+                    ? "text-gray-900 dark:text-gray-100 border-emerald-500 font-medium"
+                    : "text-gray-500 border-transparent hover:text-gray-700 dark:hover:text-gray-300"
+                  }`}
               >
-                <div
-                  className={`toc-marker ${isActive ? 'bg-emerald-500 scale-150' : isMissing ? 'bg-red-500/30' : 'bg-gray-400 dark:bg-gray-600'}`}
-                  style={{ transition: 'all 0.2s' }}
-                />
-                <button
-                  onClick={() => handleEntryClick(absoluteIndex)}
-                  className={`toc-item ml-4 pl-2 border-l-2 transition-all block w-full text-left truncate
-                    ${isActive ? 'text-gray-900 dark:text-gray-100 border-emerald-500 font-medium' : 'text-gray-500 border-transparent hover:text-gray-700 dark:hover:text-gray-300'}
-                  `}
-                >
-                  {formatDate(entry.date)}
-                </button>
-              </div>
-            );
-          })}
-        </div>
-
-        {hiddenBottomCount > 0 && (
-          <div className="text-xs text-gray-400 dark:text-gray-500 mt-2 pl-4 italic absolute bottom-0">
-            ... and {hiddenBottomCount} more entries
-          </div>
-        )}
+                {formatDate(entry.date)}
+              </button>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
