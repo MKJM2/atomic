@@ -5,6 +5,8 @@ import { useSettings } from './hooks/useSettings';
 import { useEntries } from './hooks/useEntries';
 import { useNotifications } from './hooks/useNotifications';
 import { useKeyboardNav } from './hooks/useKeyboardNav';
+import { openPath } from '@tauri-apps/plugin-opener';
+import { appLogDir } from '@tauri-apps/api/path';
 
 export default function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -103,6 +105,14 @@ export default function App() {
     scrollToActive,
   });
 
+  const handleOpenLogs = useCallback(async () => {
+    try {
+      const logDir = await appLogDir();
+      await openPath(logDir);
+    } catch (err) {
+      console.error("Failed to open log directory:", err);
+    }
+  }, []);
   if (!isLoaded) return null;
 
   return (
@@ -234,9 +244,9 @@ export default function App() {
           })}
         </div>
       </div>
-
       {isSettingsOpen && (
         <SettingsPage
+          onOpenLogs={handleOpenLogs}
           settings={settings}
           updateSetting={updateSetting}
           onPreviewFontSizeChange={setPreviewFontSize}

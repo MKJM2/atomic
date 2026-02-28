@@ -116,6 +116,8 @@ export function ScrollMinimap({
     <div
       ref={panelRef}
       className="scroll-minimap-container"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
       <div className="scroll-track" style={{ position: "relative" }}>
         <div
@@ -173,7 +175,7 @@ export function ScrollMinimap({
               />
               <button
                 onClick={() => handleEntryClick(absoluteIndex)}
-                className={`toc-item ml-4 pl-2 border-l-2 transition-all block w-full text-left truncate
+                className={`toc-item pl-2 border-l-2 transition-all block w-full text-left truncate
                   ${isActive
                     ? "text-gray-900 dark:text-gray-100 border-emerald-500 font-medium"
                     : "text-gray-500 border-transparent hover:text-gray-700 dark:hover:text-gray-300"

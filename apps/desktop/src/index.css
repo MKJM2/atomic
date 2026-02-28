@@ -117,10 +117,12 @@ body,
 /* ─── Search Highlight ─── */
 .search-highlight {
   text-decoration: underline;
-  text-decoration-color: #10b981; /* emerald-500 */
+  text-decoration-color: #10b981;
+  /* emerald-500 */
   text-decoration-thickness: 2px;
   text-underline-offset: 2px;
 }
+
 /* ─── Settings ─── */
 .settings-overlay {
   position: fixed;
@@ -466,7 +468,7 @@ body,
   bottom: 2rem;
   width: 250px;
   z-index: 50;
-  padding: 1rem;
+  /* padding: 1rem; */
   margin-left: -1rem;
   background: transparent;
   transition: width 0.4s ease-in-out, background 0.4s ease-in-out;
@@ -480,7 +482,7 @@ body,
 }
 
 .scroll-minimap-container:hover {
-  width: 240px;
+  width: 250px;
   background: var(--color-minimap-hover-bg);
   backdrop-filter: blur(8px);
 }
@@ -506,7 +508,7 @@ body,
 
 .toc-list {
   position: absolute;
-  left: 3.5rem;
+  left: 2.25rem;
   top: 1rem;
   width: calc(100% - 3.5rem);
   height: calc(100% - 2rem);
@@ -540,10 +542,9 @@ body,
   color: var(--color-text-primary);
   font-weight: 500;
 }
-
 .toc-marker {
   position: absolute;
-  left: -2rem;
+  left: -0.75rem;
   top: 50%;
   width: 4px;
   height: 4px;

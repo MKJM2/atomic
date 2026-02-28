@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react';
 import { HighlightedText } from './HighlightedText';
 import type { Entry } from '@twoline/core';
+import { todayLocalDate } from '@twoline/core';
 import type { LayoutMode } from './SettingsPage';
 
 export const PLACEHOLDERS = [

@@ -18,6 +18,7 @@ interface SettingsPageProps {
   updateSetting: <K extends keyof Settings>(key: K, value: Settings[K]) => void;
   onPreviewFontSizeChange: (size: number | null) => void;
   onTestNotification: () => void;
+  onOpenLogs?: () => void;
   onClose: () => void;
 }
 
@@ -28,6 +29,7 @@ export function SettingsPage({
   updateSetting,
   onPreviewFontSizeChange,
   onTestNotification,
+  onOpenLogs,
   onClose
 }: SettingsPageProps) {
   const { isDarkMode, layoutMode, fontSize, spacing, isDeveloperMode, notificationType, customNotificationMessage } = settings;
@@ -191,6 +193,17 @@ export function SettingsPage({
                 <span className="toggle-dot" style={{ transform: isDeveloperMode ? 'translateX(1.5rem)' : 'translateX(0.25rem)' }} />
               </button>
             </div>
+            {isDeveloperMode && (
+              <div className="settings-item">
+                <div className="item-label">
+                  <h3>Debug Logs</h3>
+                  <p>Open the folder containing application logs.</p>
+                </div>
+                <button onClick={onOpenLogs} className="action-button">
+                  Open Logs Folder
+                </button>
+              </div>
+            )}
 
             <div className="settings-item">
               <div className="item-label">
