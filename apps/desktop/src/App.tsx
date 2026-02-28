@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { JournalEntry, SettingsPage, ScrollMinimap, PLACEHOLDERS } from '@twoline/ui';
+import { JournalEntry, SettingsPage, ScrollMinimap, PLACEHOLDERS } from '@atomic/ui';
 import { useSettings } from './hooks/useSettings';
 import { useEntries } from './hooks/useEntries';
 import { useNotifications } from './hooks/useNotifications';
@@ -39,7 +39,7 @@ export default function App() {
 
   // Hooks
   const { settings, isLoaded, setPreviewFontSize, updateSetting, effectiveFontSize } = useSettings();
-  const { entries, searchQuery, setSearchQuery, handleSave, hydrateWindow, isEntrySaving } = useEntries();
+  const { entries, searchQuery, setSearchQuery, handleSave, hydrateWindow, isEntrySaving, onSeedData } = useEntries();
 
   const layoutMode = settings?.layoutMode || 'default';
   const isSnapEnabled = layoutMode === 'minimalist';
@@ -247,6 +247,7 @@ export default function App() {
       {isSettingsOpen && (
         <SettingsPage
           onOpenLogs={handleOpenLogs}
+          onSeedData={onSeedData}
           settings={settings}
           updateSetting={updateSetting}
           onPreviewFontSizeChange={setPreviewFontSize}

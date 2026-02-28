@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getSetting, setSetting } from '@twoline/db';
-import type { Settings } from '@twoline/ui';
+import { getSetting, setSetting } from '@atomic/db';
+import type { Settings } from '@atomic/ui';
 
 const DEFAULTS: Settings = {
     isDarkMode: false,

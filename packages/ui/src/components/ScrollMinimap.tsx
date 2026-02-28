@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import type { Entry } from "@twoline/core";
+import type { Entry } from "@atomic/core";
 import type { Virtualizer } from "@tanstack/react-virtual";
 
 const MINIMAP_ITEM_HEIGHT = 50;

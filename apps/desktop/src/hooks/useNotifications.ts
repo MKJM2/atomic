@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { isPermissionGranted, requestPermission, sendNotification } from '@tauri-apps/plugin-notification';
-import { PLACEHOLDERS } from '@twoline/ui';
-import type { NotificationType } from '@twoline/ui';
+import { PLACEHOLDERS } from '@atomic/ui';
+import type { NotificationType } from '@atomic/ui';
 
 interface UseNotificationsOptions {
     notificationType: NotificationType;
@@ -21,7 +21,7 @@ export function useNotifications({ notificationType, customNotificationMessage }
                 body = PLACEHOLDERS[Math.floor(Math.random() * PLACEHOLDERS.length)];
             }
             sendNotification({
-                title: 'twoline',
+                title: 'atomic',
                 body: body
             });
         }

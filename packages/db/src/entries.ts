@@ -1,5 +1,5 @@
 import { getDb } from './client'
-import type { Entry } from '@twoline/core'
+import type { Entry } from '@atomic/core'
 
 export async function upsertEntry(entry: Entry): Promise<void> {
   const db = await getDb()

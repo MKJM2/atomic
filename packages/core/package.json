@@ -1,5 +1,5 @@
 {
-  "name": "@twoline/core",
+  "name": "@atomic/core",
   "version": "0.0.1",
   "scripts": {
     "test": "vitest run"

@@ -6,7 +6,7 @@ export function getDb(): Promise<Database> {
   if (_dbPromise) return _dbPromise
 
   _dbPromise = (async () => {
-    const db = await Database.load('sqlite:twoline.db')
+    const db = await Database.load('sqlite:atomic.db')
     await migrate(db)
     return db
   })()

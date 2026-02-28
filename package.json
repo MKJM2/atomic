@@ -1,10 +1,10 @@
 {
-  "name": "twoline",
+  "name": "atomic",
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "dev": "pnpm --filter '@twoline/desktop' dev",
-    "build": "pnpm --filter '@twoline/desktop' build",
+    "dev": "pnpm --filter '@atomic/desktop' dev",
+    "build": "pnpm --filter '@atomic/desktop' build",
     "test": "vitest run",
     "test:watch": "vitest"
   },

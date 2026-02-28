@@ -1,5 +1,5 @@
 {
-  "name": "@twoline/desktop",
+  "name": "@atomic/desktop",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -16,9 +16,9 @@
     "@tauri-apps/plugin-notification": "^2",
     "@tauri-apps/plugin-opener": "^2",
     "@tauri-apps/plugin-sql": "^2",
-    "@twoline/core": "workspace:*",
-    "@twoline/db": "workspace:*",
-    "@twoline/ui": "workspace:*",
+    "@atomic/core": "workspace:*",
+    "@atomic/db": "workspace:*",
+    "@atomic/ui": "workspace:*",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },

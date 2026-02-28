@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 async function seed() {
     const db = new Database({
-        filename: 'apps/desktop/src-tauri/twoline.db',
+        filename: 'apps/desktop/src-tauri/atomic.db',
         driver: sqlite3.Database
     });
 

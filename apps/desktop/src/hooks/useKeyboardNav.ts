@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import type { LayoutMode } from '@twoline/ui';
+import type { LayoutMode } from '@atomic/ui';
 
 interface UseKeyboardNavOptions {
     activeIndex: number;

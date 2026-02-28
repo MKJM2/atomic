@@ -18,6 +18,7 @@ interface SettingsPageProps {
   updateSetting: <K extends keyof Settings>(key: K, value: Settings[K]) => void;
   onPreviewFontSizeChange: (size: number | null) => void;
   onTestNotification: () => void;
+  onSeedData?: () => Promise<void>;
   onOpenLogs?: () => void;
   onClose: () => void;
 }
@@ -28,6 +29,7 @@ export function SettingsPage({
   settings,
   updateSetting,
   onPreviewFontSizeChange,
+  onSeedData,
   onTestNotification,
   onOpenLogs,
   onClose
@@ -193,6 +195,17 @@ export function SettingsPage({
                 <span className="toggle-dot" style={{ transform: isDeveloperMode ? 'translateX(1.5rem)' : 'translateX(0.25rem)' }} />
               </button>
             </div>
+            {isDeveloperMode && (
+              <div className="settings-item">
+                <div className="item-label">
+                  <h3>Data Management</h3>
+                  <p>Seed the database with 50 sample entries.</p>
+                </div>
+                <button onClick={onSeedData} className="action-button">
+                  Seed Sample Data
+                </button>
+              </div>
+            )}
             {isDeveloperMode && (
               <div className="settings-item">
                 <div className="item-label">

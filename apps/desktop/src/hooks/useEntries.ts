@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { upsertEntry, getAllEntrySkeletons, getEntriesByDates, searchEntries } from '@twoline/db';
-import { newEntry, todayLocalDate, type Entry } from '@twoline/core';
+import { upsertEntry, getAllEntrySkeletons, getEntriesByDates, searchEntries } from '@atomic/db';
+import { newEntry, todayLocalDate, type Entry } from '@atomic/core';
 
 export function useEntries() {
     const [searchQuery, setSearchQuery] = useState('');
@@ -21,44 +21,6 @@ export function useEntries() {
             let dbSkeletons = await getAllEntrySkeletons();
             const todayStr = todayLocalDate();
 
-            // Temporary seeding logic requested by user to test hydration
-            if (dbSkeletons.length < 50) {
-                let seedDate = new Date(todayStr + 'T12:00:00');
-                seedDate.setDate(seedDate.getDate() - 10);
-
-                const quotes = [
-                    "The quieter you become, the more you are able to hear.",
-                    "Do what you can, with what you have, where you are.",
-                    "It always seems impossible until it's done.",
-                    "Success is not final, failure is not fatal.",
-                    "Happiness is not something ready made."
-                ];
-
-                for (let i = 0; i < 50; i++) {
-                    const dStr = seedDate.toISOString().split('T')[0];
-                    const uuid = crypto.randomUUID();
-                    const body = quotes[Math.floor(Math.random() * quotes.length)] + ` (Auto-seeded Entry #${50 - i})`;
-                    const now = new Date().toISOString();
-
-                    try {
-                        await upsertEntry({
-                            id: uuid,
-                            date: dStr,
-                            body: body,
-                            createdAt: now,
-                            updatedAt: now,
-                            syncedAt: null,
-                            isDeleted: false
-                        });
-                    } catch (e) {
-                        // ignore conflicts if partially seeded
-                    }
-                    seedDate.setDate(seedDate.getDate() - 2); // create gaps
-                }
-
-                // Reload skeletons after seeding
-                dbSkeletons = await getAllEntrySkeletons();
-            }
 
             const dbMap = new Map<string, string>();
             for (const s of dbSkeletons) {
@@ -131,10 +93,14 @@ export function useEntries() {
                 for (const e of fetched) {
                     next[e.date] = e;
                 }
+                const todayStr = todayLocalDate();
                 for (const d of missingDatesToFake) {
                     const empty = newEntry('');
                     empty.date = d;
-                    empty.isMissing = true;
+                    // Only mark as missing if the date is strictly in the past
+                    if (d < todayStr) {
+                        empty.isMissing = true;
+                    }
                     next[d] = empty;
                 }
                 return next;
@@ -151,12 +117,16 @@ export function useEntries() {
     // 5. Build final entries array for rendering (combines skeleton + cache)
     // If not hydrated yet, we return a temporary empty entry so Virtualizer can mount *something*
     const entries = useMemo(() => {
+        const todayStr = todayLocalDate();
         return visibleTimeline.map(skel => {
             if (entryCache[skel.date]) return entryCache[skel.date];
             const temp = newEntry('');
             temp.date = skel.date;
             temp.id = skel.id || temp.id;
-            if (skel.id === null) temp.isMissing = true;
+            // Only mark as missing if the ID is null AND the date is strictly in the past
+            if (skel.id === null && skel.date < todayStr) {
+                temp.isMissing = true;
+            }
             return temp;
         });
     }, [visibleTimeline, entryCache]);
@@ -220,6 +190,56 @@ export function useEntries() {
         return savingDates.has(date);
     }, [savingDates]);
 
+    const onSeedData = useCallback(async () => {
+        const todayStr = todayLocalDate();
+        let seedDate = new Date(todayStr + 'T12:00:00');
+        seedDate.setDate(seedDate.getDate() - 1);
+
+        const quotes = [
+            "The quieter you become, the more you are able to hear.",
+            "Do what you can, with what you have, where you are.",
+            "It always seems impossible until it's done.",
+            "Success is not final, failure is not fatal.",
+            "Happiness is not something ready made."
+        ];
+
+        for (let i = 0; i < 50; i++) {
+            const dStr = seedDate.toISOString().split('T')[0];
+            const uuid = crypto.randomUUID();
+            const body = quotes[Math.floor(Math.random() * quotes.length)] + ` (Auto-seeded Entry #${50 - i})`;
+            const now = new Date().toISOString();
+            try {
+                await upsertEntry({
+                    id: uuid,
+                    date: dStr,
+                    body: body,
+                    createdAt: now,
+                    updatedAt: now,
+                    syncedAt: null,
+                    isDeleted: false
+                });
+            } catch (e) { /* ignore */ }
+            seedDate.setDate(seedDate.getDate() - 1);
+        }
+
+        // Reload everything after seeding
+        const dbSkeletons = await getAllEntrySkeletons();
+        const dbMap = new Map<string, string>();
+        for (const s of dbSkeletons) {
+            dbMap.set(s.date, s.id);
+        }
+        const skeleton: { id: string | null; date: string }[] = [];
+        let curr = new Date(todayStr + 'T12:00:00');
+        const oldestDateStr = dbSkeletons.length > 0 ? dbSkeletons[dbSkeletons.length - 1].date : todayStr;
+        const oldest = new Date(oldestDateStr + 'T12:00:00');
+        while (curr >= oldest) {
+            const dStr = curr.toISOString().split('T')[0];
+            skeleton.push({ id: dbMap.get(dStr) || null, date: dStr });
+            curr.setDate(curr.getDate() - 1);
+        }
+        setFullSkeleton(skeleton);
+        setEntryCache({}); // Clear cache to force hydration of new entries
+    }, []);
     return {
         entries,
         searchQuery,
@@ -228,5 +248,6 @@ export function useEntries() {
         hydrateWindow,
         isEntrySaving,
         isSaving: savingDates.size > 0,
+        onSeedData,
     };
 }
