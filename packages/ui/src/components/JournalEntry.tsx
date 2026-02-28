@@ -57,6 +57,10 @@ export function JournalEntry({
     return PLACEHOLDERS[Math.floor(Math.random() * PLACEHOLDERS.length)];
   }, [placeholderIndex]);
 
+  const isPast = entry.date < todayLocalDate();
+  const isMissing = isPast && !val.trim();
+  const finalPlaceholder = isMissing ? "Missing" : placeholder;
+
   // Keep local value in sync with prop, but only if not focused
   useEffect(() => {
     if (!isFocused) {
@@ -71,8 +75,8 @@ export function JournalEntry({
 
       // If empty, temporarily use placeholder to measure required height
       const originalValue = textarea.value;
-      if (!originalValue && placeholder) {
-        textarea.value = placeholder;
+      if (!originalValue && finalPlaceholder) {
+        textarea.value = finalPlaceholder;
         textarea.style.height = textarea.scrollHeight + 'px';
         textarea.value = originalValue;
       } else {

@@ -116,8 +116,6 @@ export function ScrollMinimap({
     <div
       ref={panelRef}
       className="scroll-minimap-container"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
     >
       <div className="scroll-track" style={{ position: "relative" }}>
         <div
