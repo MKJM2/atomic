@@ -1,0 +1,49 @@
+name: "Release"
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  publish:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [macos-latest, windows-latest]
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
+      - name: install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: pnpm install
+        run: pnpm install
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: app-v__VERSION__ # tauri-action replaces this with the version from tauri.conf.json
+          releaseName: "Atomic v__VERSION__"
+          releaseBody: "See the assets below to download the latest version."
+          releaseDraft: true
+          prerelease: false
+          # Point to the tauri.conf.json location
+          projectPath: ./apps/desktop
