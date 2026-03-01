@@ -11,6 +11,8 @@ export interface Settings {
   isDeveloperMode: boolean;
   notificationType: NotificationType;
   customNotificationMessage: string;
+  onboardingComplete: boolean;
+  reminderTime: string;
 }
 
 interface SettingsPageProps {

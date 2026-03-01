@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { JournalEntry, SettingsPage, ScrollMinimap, PLACEHOLDERS, SearchIcon, SettingsIcon } from '@atomic/ui';
+import { JournalEntry, SettingsPage, ScrollMinimap, PLACEHOLDERS, SearchIcon, SettingsIcon, OnboardingFlow } from '@atomic/ui';
 import { useSettings } from './hooks/useSettings';
 import { useEntries } from './hooks/useEntries';
 import { useNotifications } from './hooks/useNotifications';
@@ -116,6 +116,22 @@ export default function App() {
     }
   }, []);
   if (!isLoaded) return null;
+
+  if (!settings.onboardingComplete) {
+    return (
+      <div className={`${settings.isDarkMode ? 'dark' : ''}`}
+        style={{ fontFamily: '"Iowan Old Style", "Apple Garamond", Baskerville, "Times New Roman", "Droid Serif", Times, "Source Serif Pro", serif' }}
+      >
+        <OnboardingFlow
+          isDarkMode={settings.isDarkMode}
+          reminderTime={settings.reminderTime}
+          onToggleDarkMode={(v) => updateSetting('isDarkMode', v)}
+          onSetReminderTime={(v) => updateSetting('reminderTime', v)}
+          onComplete={() => updateSetting('onboardingComplete', true)}
+        />
+      </div>
+    );
+  }
 
   return (
     <div
