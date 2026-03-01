@@ -47,6 +47,7 @@ async fn schedule_daily_reminder(
     app: AppHandle,
     state: State<'_, AppState>,
     time: String,
+    message: String,
 ) -> Result<(), String> {
     // First cancel any existing job
     {
@@ -62,15 +63,25 @@ async fn schedule_daily_reminder(
     let cron_expr = time_to_cron(&time)?;
 
     let app_handle = app.clone();
-    let job = Job::new_async(cron_expr.as_str(), move |_uuid, _lock| {
+    let cron_expr_log = cron_expr.clone();
+    let notification_message = message.clone();
+    let job = Job::new_async_tz(cron_expr.as_str(), Local, move |uuid, _lock| {
         let app = app_handle.clone();
+        let cron_for_log = cron_expr_log.clone();
+        let body = notification_message.clone();
         Box::pin(async move {
-            let _ = app
+            let now = chrono::Local::now();
+            tracing::info!("[FIRE] Daily reminder cron job triggered! job_uuid={}, cron={}, local_time={}", uuid, cron_for_log, now.format("%Y-%m-%d %H:%M:%S"));
+            match app
                 .notification()
                 .builder()
                 .title("Atomic")
-                .body("Time to write your sentence for today ✍️")
-                .show();
+                .body(&body)
+                .show()
+            {
+                Ok(_) => tracing::info!("[FIRE] Notification .show() succeeded"),
+                Err(e) => tracing::error!("[FIRE] Notification .show() FAILED: {:?}", e),
+            }
         })
     })
     .map_err(|e| format!("Failed to create cron job: {}", e))?;
@@ -141,12 +152,17 @@ async fn schedule_test_notification(
     let next_fire_clone = state.next_fire_time_ms.clone();
     tauri::async_runtime::spawn(async move {
         tokio::time::sleep(std::time::Duration::from_secs(delay_secs)).await;
-        let _ = app
+        tracing::info!("[TEST-FIRE] Test notification timer elapsed, sending notification now");
+        match app
             .notification()
             .builder()
             .title("Atomic")
             .body("Test notification — your scheduler works! 🎉")
-            .show();
+            .show()
+        {
+            Ok(_) => tracing::info!("[TEST-FIRE] Notification .show() succeeded"),
+            Err(e) => tracing::error!("[TEST-FIRE] Notification .show() FAILED: {:?}", e),
+        }
         // Clear the fire time if it's still pointing to this one
         let _ = next_fire_clone.compare_exchange(
             fire_ms,
@@ -256,6 +272,27 @@ pub fn run() {
             tauri::async_runtime::spawn(async move {
                 match JobScheduler::new().await {
                     Ok(scheduler) => {
+                        // --- 1-minute heartbeat job for debugging (dev builds only) ---
+                        #[cfg(debug_assertions)]
+                        {
+                            let heartbeat = Job::new_async("0 * * * * *", |_uuid, _lock| {
+                                Box::pin(async move {
+                                    let now = chrono::Local::now();
+                                    tracing::debug!("[HEARTBEAT] Scheduler alive — local_time={}", now.format("%Y-%m-%d %H:%M:%S"));
+                                })
+                            });
+                            match heartbeat {
+                                Ok(hb) => {
+                                    if let Err(e) = scheduler.add(hb).await {
+                                        tracing::error!("Failed to add heartbeat job: {}", e);
+                                    } else {
+                                        tracing::debug!("Heartbeat job added (fires every minute at :00)");
+                                    }
+                                }
+                                Err(e) => tracing::error!("Failed to create heartbeat job: {}", e),
+                            }
+                        }
+
                         if let Err(e) = scheduler.start().await {
                             tracing::error!("Failed to start scheduler: {}", e);
                             return;
