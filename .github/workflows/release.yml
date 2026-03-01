@@ -3,7 +3,7 @@ name: "Release"
 on:
   push:
     branches:
-      - main
+      - release
 
 jobs:
   publish:
@@ -43,7 +43,7 @@ jobs:
       - name: pnpm install
         run: pnpm install
 
-      - uses: tauri-apps/tauri-action@v1
+      - uses: tauri-apps/tauri-action@v0.5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
