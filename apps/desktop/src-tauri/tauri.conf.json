@@ -40,7 +40,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEQyQUM2NzZCNTZGN0Q0QjcKUldTMzFQZFdhMmVzMHNHTjhObGNTN3ZmMTFvSnQ1eHRBcURIVHBIYVhUZE5YOXJKdk1EQzZST0gK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDMxRkY1NDIxQTRGRDFBQkUKUldTK0d2MmtJVlQvTVpyTGV4RG82MXlmTWNGSEpRUloxK2pxTDhVaVA4c1AxbjBjam8xdVZpbEYK",
       "endpoints": [
         "https://github.com/mkurek/atomic/releases/latest/download/latest.json"
       ]
