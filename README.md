@@ -47,7 +47,7 @@ This project is a pnpm workspace monorepo:
 
 ## CI/CD
 
-Automatic builds for macOS (ARM + Intel) and Windows are triggered by GitHub Actions on every push to the `release` branch. Builds on `main` do **not** trigger releases.
+Automatic builds for macOS (ARM + Intel) and Windows are triggered by GitHub Actions when you push a tag matching `app-v*`.
 
 ### Required Secrets
 
@@ -61,20 +61,26 @@ Configure these in **Settings → Secrets and variables → Actions**:
 
 ### Release Process
 
-1. Merge your changes into `main` as usual.
+1. Bump the version in `apps/desktop/src-tauri/tauri.conf.json`.
 
-2. When ready to ship, push to the `release` branch:
+2. Commit and push to `main`:
    ```bash
-   git checkout release
-   git merge main
-   git push origin release
+   git add apps/desktop/src-tauri/tauri.conf.json
+   git commit -m "release: v0.2.0"
+   git push origin main
    ```
 
-3. GitHub Actions will build three targets in parallel:
+3. Tag and push the release:
+   ```bash
+   git tag app-v0.2.0
+   git push origin app-v0.2.0
+   ```
+
+4. GitHub Actions will build three targets in parallel:
    - macOS ARM (`aarch64-apple-darwin`) → `.dmg`
    - macOS Intel (`x86_64-apple-darwin`) → `.dmg`
    - Windows x64 → `.msi` + `.exe` (NSIS)
 
-4. A **draft** GitHub Release named `Atomic v<version>` is created automatically with all artifacts attached. Review it and publish when ready.
+5. A **draft** GitHub Release named `Atomic v0.2.0` is created automatically with all artifacts attached. Review it and publish when ready.
 
 > **Tip**: To generate a signing keypair: `cargo tauri signer generate -w ~/.tauri/atomic.key`
