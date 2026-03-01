@@ -14,6 +14,7 @@ export interface Settings {
   customNotificationMessage: string;
   onboardingComplete: boolean;
   reminderTime: string;
+  autoStartEnabled: boolean;
 }
 
 interface SettingsPageProps {
@@ -21,7 +22,10 @@ interface SettingsPageProps {
   updateSetting: <K extends keyof Settings>(key: K, value: Settings[K]) => void;
   onPreviewFontSizeChange: (size: number | null) => void;
   onTestNotification: () => void;
+  onScheduleTestNotification: () => void;
+  nextNotificationTime: number;
   onResetOnboarding: () => void;
+  onToggleAutoStart: (enabled: boolean) => void;
   onSeedData?: () => Promise<void>;
   onOpenLogs?: () => void;
   onClose: () => void;
@@ -35,11 +39,14 @@ export function SettingsPage({
   onPreviewFontSizeChange,
   onSeedData,
   onTestNotification,
+  onScheduleTestNotification,
+  nextNotificationTime,
   onResetOnboarding,
+  onToggleAutoStart,
   onOpenLogs,
   onClose
 }: SettingsPageProps) {
-  const { isDarkMode, layoutMode, fontSize, spacing, isDeveloperMode, notificationsEnabled, notificationType, customNotificationMessage, reminderTime } = settings;
+  const { isDarkMode, layoutMode, fontSize, spacing, isDeveloperMode, notificationsEnabled, notificationType, customNotificationMessage, reminderTime, autoStartEnabled } = settings;
   const onToggleDarkMode = (v: boolean) => updateSetting('isDarkMode', v);
   const onLayoutModeChange = (v: LayoutMode) => updateSetting('layoutMode', v);
   const onFontSizeChange = (v: number) => updateSetting('fontSize', v);
@@ -53,6 +60,34 @@ export function SettingsPage({
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const isSpacingDisabled = layoutMode === 'minimalist';
+
+  // Live countdown timer for next notification
+  const [countdown, setCountdown] = useState<string | null>(null);
+  useEffect(() => {
+    if (!nextNotificationTime || nextNotificationTime === 0) {
+      setCountdown(null);
+      return;
+    }
+    const tick = () => {
+      const remaining = nextNotificationTime - Date.now();
+      if (remaining <= 0) {
+        setCountdown(null);
+        return;
+      }
+      const totalSecs = Math.floor(remaining / 1000);
+      const mins = Math.floor(totalSecs / 60);
+      const secs = totalSecs % 60;
+      const ms = Math.floor((remaining % 1000) / 10);
+      if (mins > 0) {
+        setCountdown(`${mins}m ${secs.toString().padStart(2, '0')}s`);
+      } else {
+        setCountdown(`${secs}.${ms.toString().padStart(2, '0')}s`);
+      }
+    };
+    tick();
+    const id = setInterval(tick, 50);
+    return () => clearInterval(id);
+  }, [nextNotificationTime]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -259,6 +294,20 @@ export function SettingsPage({
           <div className="settings-list">
             <div className="settings-item">
               <div className="item-label">
+                <h3>Launch at Login</h3>
+                <p>Start Atomic automatically when you log in.</p>
+              </div>
+              <button
+                onClick={() => onToggleAutoStart(!autoStartEnabled)}
+                className="toggle-btn"
+                style={{ backgroundColor: autoStartEnabled ? '#10b981' : undefined }}
+                aria-label="Toggle launch at login"
+              >
+                <span className="toggle-dot" style={{ transform: autoStartEnabled ? 'translateX(1.5rem)' : 'translateX(0.25rem)' }} />
+              </button>
+            </div>
+            <div className="settings-item">
+              <div className="item-label">
                 <h3>Developer Mode</h3>
                 <p>Enable additional debugging tools and logs.</p>
               </div>
@@ -300,7 +349,38 @@ export function SettingsPage({
                   <p>Send a test notification to verify integration.</p>
                 </div>
                 <button onClick={onTestNotification} className="action-button">
-                  Send Test
+                  Send Instant
+                </button>
+              </div>
+            )}
+            {isDeveloperMode && (
+              <div className="settings-item">
+                <div className="item-label">
+                  <h3>Scheduled Test</h3>
+                  <p>
+                    Schedule a notification in 5 seconds.
+                    {countdown && (
+                      <span style={{
+                        display: 'block',
+                        marginTop: '0.4rem',
+                        fontFamily: 'monospace',
+                        fontSize: '1.15rem',
+                        fontWeight: 600,
+                        color: '#10b981',
+                        letterSpacing: '0.05em',
+                      }}>
+                        ⏱ {countdown}
+                      </span>
+                    )}
+                  </p>
+                </div>
+                <button
+                  onClick={onScheduleTestNotification}
+                  className="action-button"
+                  disabled={!!countdown}
+                  style={{ opacity: countdown ? 0.5 : 1 }}
+                >
+                  {countdown ? 'Waiting…' : 'Schedule 5s'}
                 </button>
               </div>
             )}

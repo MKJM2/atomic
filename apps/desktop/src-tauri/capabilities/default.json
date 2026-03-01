@@ -24,6 +24,7 @@
     },
     "sql:allow-execute",
     "updater:default",
-    "dialog:default"
+    "dialog:default",
+    "autostart:default"
   ]
 }

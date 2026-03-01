@@ -89,9 +89,29 @@ function WelcomePage({ onNext }: { onNext: () => void }) {
     return (
         <div className="onboarding-content">
             <div className="onboarding-icon">
-                <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <rect width="64" height="64" rx="16" fill="currentColor" opacity="0.08" />
-                    <text x="32" y="42" textAnchor="middle" fill="currentColor" fontSize="28" fontWeight="700" fontFamily="inherit">A</text>
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 200 200"
+                    width="120"
+                    height="120"
+                    role="img"
+                    aria-labelledby="atomic-logo-title"
+                >
+                    <title id="atomic-logo-title">Atomic Journal Logo</title>
+                    <circle cx="100" cy="100" r="65" stroke="currentColor" strokeWidth="2.5" fill="none" opacity="0.3" />
+                    <circle cx="100" cy="100" r="10" fill="currentColor" />
+                    <circle r="6" fill="currentColor" opacity="0.6">
+                        <animateMotion dur="8s" repeatCount="indefinite" rotate="auto">
+                            <mpath href="#onboardingOrbitPath" />
+                        </animateMotion>
+                    </circle>
+                    <defs>
+                        <path
+                            id="onboardingOrbitPath"
+                            d="M 165 100 a 65 65 0 1 1 -130 0 a 65 65 0 1 1 130 0"
+                            fill="none"
+                        />
+                    </defs>
                 </svg>
             </div>
             <h1 className="onboarding-title">Atomic</h1>

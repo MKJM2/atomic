@@ -13,6 +13,7 @@ const DEFAULTS: Settings = {
     customNotificationMessage: 'Time to write your two sentences for today.',
     onboardingComplete: false,
     reminderTime: '20:00',
+    autoStartEnabled: false,
 };
 
 const SETTING_KEYS: (keyof Settings)[] = [
@@ -26,6 +27,7 @@ const SETTING_KEYS: (keyof Settings)[] = [
     'customNotificationMessage',
     'onboardingComplete',
     'reminderTime',
+    'autoStartEnabled',
 ];
 
 function serialize(_key: keyof Settings, value: Settings[keyof Settings]): string {

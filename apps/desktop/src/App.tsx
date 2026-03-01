@@ -8,10 +8,13 @@ import { useKeyboardNav } from './hooks/useKeyboardNav';
 import { useUpdater } from './hooks/useUpdater';
 import { openPath } from '@tauri-apps/plugin-opener';
 import { appLogDir } from '@tauri-apps/api/path';
+import { enable as enableAutostart, disable as disableAutostart } from '@tauri-apps/plugin-autostart';
+import { invoke } from '@tauri-apps/api/core';
 
 export default function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [nextNotificationTime, setNextNotificationTime] = useState(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
@@ -94,6 +97,8 @@ export default function App() {
   const { handleTestNotification } = useNotifications({
     notificationType: settings?.notificationType || 'random',
     customNotificationMessage: settings?.customNotificationMessage || '',
+    notificationsEnabled: settings?.notificationsEnabled ?? false,
+    reminderTime: settings?.reminderTime || '20:00',
   });
 
   useKeyboardNav({
@@ -265,7 +270,28 @@ export default function App() {
           updateSetting={updateSetting}
           onPreviewFontSizeChange={setPreviewFontSize}
           onTestNotification={handleTestNotification}
+          onScheduleTestNotification={async () => {
+            try {
+              const fireMs = await invoke<number>('schedule_test_notification', { delaySecs: 5 });
+              setNextNotificationTime(fireMs);
+            } catch (e) {
+              console.error('Failed to schedule test notification:', e);
+            }
+          }}
+          nextNotificationTime={nextNotificationTime}
           onResetOnboarding={() => updateSetting('onboardingComplete', false)}
+          onToggleAutoStart={async (enabled) => {
+            try {
+              if (enabled) {
+                await enableAutostart();
+              } else {
+                await disableAutostart();
+              }
+              updateSetting('autoStartEnabled', enabled);
+            } catch (e) {
+              console.error('Failed to toggle autostart:', e);
+            }
+          }}
           onClose={() => setIsSettingsOpen(false)}
         />
       )}
