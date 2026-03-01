@@ -9,6 +9,7 @@ export interface Settings {
   fontSize: number;
   spacing: number;
   isDeveloperMode: boolean;
+  notificationsEnabled: boolean;
   notificationType: NotificationType;
   customNotificationMessage: string;
   onboardingComplete: boolean;
@@ -20,6 +21,7 @@ interface SettingsPageProps {
   updateSetting: <K extends keyof Settings>(key: K, value: Settings[K]) => void;
   onPreviewFontSizeChange: (size: number | null) => void;
   onTestNotification: () => void;
+  onResetOnboarding: () => void;
   onSeedData?: () => Promise<void>;
   onOpenLogs?: () => void;
   onClose: () => void;
@@ -33,17 +35,20 @@ export function SettingsPage({
   onPreviewFontSizeChange,
   onSeedData,
   onTestNotification,
+  onResetOnboarding,
   onOpenLogs,
   onClose
 }: SettingsPageProps) {
-  const { isDarkMode, layoutMode, fontSize, spacing, isDeveloperMode, notificationType, customNotificationMessage } = settings;
+  const { isDarkMode, layoutMode, fontSize, spacing, isDeveloperMode, notificationsEnabled, notificationType, customNotificationMessage, reminderTime } = settings;
   const onToggleDarkMode = (v: boolean) => updateSetting('isDarkMode', v);
   const onLayoutModeChange = (v: LayoutMode) => updateSetting('layoutMode', v);
   const onFontSizeChange = (v: number) => updateSetting('fontSize', v);
   const onSpacingChange = (v: number) => updateSetting('spacing', v);
   const onToggleDeveloperMode = (v: boolean) => updateSetting('isDeveloperMode', v);
+  const onToggleNotifications = (v: boolean) => updateSetting('notificationsEnabled', v);
   const onNotificationTypeChange = (v: NotificationType) => updateSetting('notificationType', v);
   const onCustomNotificationMessageChange = (v: string) => updateSetting('customNotificationMessage', v);
+  const onReminderTimeChange = (v: string) => updateSetting('reminderTime', v);
   const [isAdjustingFontSize, setIsAdjustingFontSize] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -181,6 +186,75 @@ export function SettingsPage({
         </div>
 
         <div className="settings-section">
+          <h3 className="settings-section-title">Notifications</h3>
+          <div className="settings-list">
+            <div className="settings-item">
+              <div className="item-label">
+                <h3>Daily Reminder</h3>
+                <p>Get a nudge to write every day.</p>
+              </div>
+              <button
+                onClick={() => onToggleNotifications(!notificationsEnabled)}
+                className="toggle-btn"
+                style={{ backgroundColor: notificationsEnabled ? '#10b981' : undefined }}
+                aria-label="Toggle daily notifications"
+              >
+                <span className="toggle-dot" style={{ transform: notificationsEnabled ? 'translateX(1.5rem)' : 'translateX(0.25rem)' }} />
+              </button>
+            </div>
+
+            <div className={`settings-item ${!notificationsEnabled ? 'disabled' : ''}`}>
+              <div className="item-label">
+                <h3>Reminder Time</h3>
+                <p>When to send the daily notification.</p>
+              </div>
+              <input
+                type="time"
+                value={reminderTime}
+                onChange={(e) => onReminderTimeChange(e.target.value)}
+                disabled={!notificationsEnabled}
+                className="text-input"
+                style={{ maxWidth: '120px', textAlign: 'center' }}
+              />
+            </div>
+
+            <div className={`settings-item ${!notificationsEnabled ? 'disabled' : ''}`}>
+              <div className="item-label">
+                <h3>Message Style</h3>
+                <p>Random inspirations or a custom message.</p>
+              </div>
+              <div className="mode-selector">
+                {(['random', 'custom'] as NotificationType[]).map((type) => (
+                  <button
+                    key={type}
+                    onClick={() => onNotificationTypeChange(type)}
+                    className={`mode-btn ${notificationType === type ? 'active' : ''}`}
+                    disabled={!notificationsEnabled}
+                  >
+                    {type.charAt(0).toUpperCase() + type.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className={`settings-item ${!notificationsEnabled || notificationType === 'random' ? 'disabled' : ''}`}>
+              <div className="item-label">
+                <h3>Custom Message</h3>
+                <p>Your personalized reminder text.</p>
+              </div>
+              <input
+                type="text"
+                value={customNotificationMessage}
+                onChange={(e) => onCustomNotificationMessageChange(e.target.value)}
+                placeholder="Time to write..."
+                disabled={!notificationsEnabled || notificationType === 'random'}
+                className="text-input"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="settings-section">
           <h3 className="settings-section-title">Advanced</h3>
           <div className="settings-list">
             <div className="settings-item">
@@ -219,49 +293,28 @@ export function SettingsPage({
                 </button>
               </div>
             )}
-
-            <div className="settings-item">
-              <div className="item-label">
-                <h3>Notification Type</h3>
-                <p>Choose random inspirations or a custom message.</p>
+            {isDeveloperMode && (
+              <div className="settings-item">
+                <div className="item-label">
+                  <h3>Test Notification</h3>
+                  <p>Send a test notification to verify integration.</p>
+                </div>
+                <button onClick={onTestNotification} className="action-button">
+                  Send Test
+                </button>
               </div>
-              <div className="mode-selector">
-                {(['random', 'custom'] as NotificationType[]).map((type) => (
-                  <button
-                    key={type}
-                    onClick={() => onNotificationTypeChange(type)}
-                    className={`mode-btn ${notificationType === type ? 'active' : ''}`}
-                  >
-                    {type.charAt(0).toUpperCase() + type.slice(1)}
-                  </button>
-                ))}
+            )}
+            {isDeveloperMode && (
+              <div className="settings-item">
+                <div className="item-label">
+                  <h3>Reset Onboarding</h3>
+                  <p>Show the welcome flow again on next launch.</p>
+                </div>
+                <button onClick={onResetOnboarding} className="action-button">
+                  Reset
+                </button>
               </div>
-            </div>
-
-            <div className={`settings-item ${notificationType === 'random' ? 'disabled' : ''}`}>
-              <div className="item-label">
-                <h3>Custom Message</h3>
-                <p>Enter your personalized reminder text.</p>
-              </div>
-              <input
-                type="text"
-                value={customNotificationMessage}
-                onChange={(e) => onCustomNotificationMessageChange(e.target.value)}
-                placeholder="Time to write..."
-                disabled={notificationType === 'random'}
-                className="text-input"
-              />
-            </div>
-
-            <div className="settings-item">
-              <div className="item-label">
-                <h3>System Integration</h3>
-                <p>Test the native notification system.</p>
-              </div>
-              <button onClick={onTestNotification} className="action-button">
-                Test Notification
-              </button>
-            </div>
+            )}
           </div>
         </div>
       </div>

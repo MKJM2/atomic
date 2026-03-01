@@ -265,6 +265,7 @@ export default function App() {
           updateSetting={updateSetting}
           onPreviewFontSizeChange={setPreviewFontSize}
           onTestNotification={handleTestNotification}
+          onResetOnboarding={() => updateSetting('onboardingComplete', false)}
           onClose={() => setIsSettingsOpen(false)}
         />
       )}
