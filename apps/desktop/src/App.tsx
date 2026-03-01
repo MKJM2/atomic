@@ -1,10 +1,11 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { JournalEntry, SettingsPage, ScrollMinimap, PLACEHOLDERS } from '@atomic/ui';
+import { JournalEntry, SettingsPage, ScrollMinimap, PLACEHOLDERS, SearchIcon, SettingsIcon } from '@atomic/ui';
 import { useSettings } from './hooks/useSettings';
 import { useEntries } from './hooks/useEntries';
 import { useNotifications } from './hooks/useNotifications';
 import { useKeyboardNav } from './hooks/useKeyboardNav';
+import { useUpdater } from './hooks/useUpdater';
 import { openPath } from '@tauri-apps/plugin-opener';
 import { appLogDir } from '@tauri-apps/api/path';
 
@@ -49,7 +50,7 @@ export default function App() {
     count: entries.length,
     getScrollElement: () => scrollContainerRef.current,
     estimateSize: () => isSnapEnabled ? window.innerHeight : 250,
-    overscan: 5,
+    overscan: 6,
     onChange: (instance) => {
       const items = instance.getVirtualItems();
       if (items.length > 0) {
@@ -60,7 +61,7 @@ export default function App() {
   });
 
   const scrollToActive = useCallback((index: number) => {
-    virtualizer.scrollToIndex(index, { align: 'center', behavior: 'smooth' });
+    virtualizer.scrollToIndex(index, { align: 'center' });
   }, [virtualizer]);
 
   useEffect(() => {
@@ -104,6 +105,7 @@ export default function App() {
     setIsSettingsOpen,
     scrollToActive,
   });
+  useUpdater();
 
   const handleOpenLogs = useCallback(async () => {
     try {
@@ -160,30 +162,25 @@ export default function App() {
                 setTimeout(() => searchInputRef.current?.focus(), 50);
               }
             }}
-            className={`p-2 transition-colors cursor-pointer rounded-full backdrop-blur-md shadow-sm border border-transparent ${isSearchExpanded ? 'text-gray-600 dark:text-gray-300' : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 bg-white/80 dark:bg-black/50'}`}
+            className={`p-2 transition-colors cursor-pointer ${isSearchExpanded ? 'text-text-primary' : 'text-text-muted hover:text-text-primary'}`}
             aria-label="Search"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
+            <SearchIcon className="h-5 w-5" />
           </button>
         </div>
 
         <button
           onClick={() => setIsSettingsOpen(true)}
-          className="pointer-events-auto p-2 text-gray-500 hover:text-gray-800 transition-colors cursor-pointer dark:text-gray-400 dark:hover:text-gray-200 bg-white/80 dark:bg-black/50 rounded-full backdrop-blur-md shadow-sm border border-transparent"
+          className="pointer-events-auto p-2 text-text-muted hover:text-text-primary transition-colors cursor-pointer"
           aria-label="Settings"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1-1-1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
-            <circle cx="12" cy="12" r="3" />
-          </svg>
+          <SettingsIcon size={20} />
         </button>
       </div>
 
       <div
         ref={scrollContainerRef}
-        className="h-full overflow-y-auto scroll-smooth hide-scrollbar relative pt-[100px]"
+        className="h-full overflow-y-auto hide-scrollbar relative pt-[100px]"
         style={{
           scrollSnapType: isSnapEnabled ? 'y mandatory' : 'none',
           overscrollBehavior: isSnapEnabled ? 'none' : 'auto',

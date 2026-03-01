@@ -109,7 +109,7 @@ export function ScrollMinimap({
   const visibleEntries = entries.slice(firstVisible, lastVisible + 1);
 
   const handleEntryClick = (index: number) => {
-    virtualizer.scrollToIndex(index, { behavior: "smooth", align: "center" });
+    virtualizer.scrollToIndex(index, { align: "center", behavior: "smooth" });
   };
 
   return (

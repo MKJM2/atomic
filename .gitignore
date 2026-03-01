@@ -65,3 +65,19 @@ apps/.pnpm-home/
 
 # general safety
 .pnpm-home/
+
+# -----------------------------
+# Tauri / Rust
+# -----------------------------
+src-tauri/target/
+src-tauri/gen/
+src-tauri/*.key
+src-tauri/*.key.pub
+
+# -----------------------------
+# Databases
+# -----------------------------
+*.db
+*.db-journal
+*.db-shm
+*.db-wal

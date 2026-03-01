@@ -22,6 +22,8 @@
         }
       ]
     },
-    "sql:allow-execute"
+    "sql:allow-execute",
+    "updater:default",
+    "dialog:default"
   ]
 }

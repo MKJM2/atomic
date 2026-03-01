@@ -4,3 +4,4 @@ export * from './components/Heatmap';
 export * from './components/Streak';
 export * from './components/ScrollMinimap';
 export * from './components/HighlightedText';
+export * from './components/Icons';
