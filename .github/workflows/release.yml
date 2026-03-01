@@ -56,3 +56,4 @@ jobs:
           prerelease: false
           projectPath: ./apps/desktop
           args: ${{ matrix.args }}
+          uploadWorkflowArtifacts: true
