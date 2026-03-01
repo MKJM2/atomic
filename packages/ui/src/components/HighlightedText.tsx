@@ -1,4 +1,3 @@
-import React from 'react';
 
 interface HighlightedTextProps {
   text: string;
@@ -17,7 +16,7 @@ export function HighlightedText({ text, highlight, className = "" }: Highlighted
 
   return (
     <span className={className}>
-      {parts.map((part, i) => 
+      {parts.map((part, i) =>
         part.toLowerCase() === highlight.toLowerCase() ? (
           <span key={i} className="search-highlight">
             {part}
