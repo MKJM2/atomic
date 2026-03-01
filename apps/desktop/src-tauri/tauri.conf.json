@@ -40,7 +40,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDMxRkY1NDIxQTRGRDFBQkUKUldTK0d2MmtJVlQvTVpyTGV4RG82MXlmTWNGSEpRUloxK2pxTDhVaVA4c1AxbjBjam8xdVZpbEYK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEJCQUFCNEZGRkYzMTFDRjAKUldUd0hESC8vN1NxdXp6c0ZrWnVqM1RWZ0cxK0NkT1dycW4rMlluRGRwVzZvZmRFTHNVQXdOL0sK",
       "endpoints": [
         "https://github.com/MKJM2/atomic/releases/latest/download/latest.json"
       ]
