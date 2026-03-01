@@ -25,6 +25,7 @@
   },
   "bundle": {
     "active": true,
+    "createUpdaterArtifacts": true,
     "targets": [
       "dmg",
       "app"
@@ -36,5 +37,13 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEQyQUM2NzZCNTZGN0Q0QjcKUldTMzFQZFdhMmVzMHNHTjhObGNTN3ZmMTFvSnQ1eHRBcURIVHBIYVhUZE5YOXJKdk1EQzZST0gK",
+      "endpoints": [
+        "https://github.com/mkurek/atomic/releases/latest/download/latest.json"
+      ]
+    }
   }
 }
