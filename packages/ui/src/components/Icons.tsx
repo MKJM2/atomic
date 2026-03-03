@@ -78,7 +78,7 @@ export const AtomicLogo = ({ className, size = 120, spinning = false }: AtomicLo
       {/* Proton - Made much larger */}
       <circle cx="100" cy="100" r="20" fill="currentColor" />
       {/* Electron - Made much larger */}
-      <circle r="12" fill="currentColor" opacity="0.6">
+      <circle r="12" fill="currentColor">
         <animateMotion dur={dur} repeatCount="indefinite" rotate="auto">
           <mpath href="#atomicOrbitPath" />
         </animateMotion>
