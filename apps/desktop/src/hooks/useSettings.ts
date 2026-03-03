@@ -8,7 +8,7 @@ const DEFAULTS: Settings = {
     fontSize: 24,
     spacing: 4,
     isDeveloperMode: false,
-    notificationsEnabled: false,
+    notificationsEnabled: true,
     notificationType: 'random',
     customNotificationMessage: 'Time to write your two sentences for today.',
     onboardingComplete: false,

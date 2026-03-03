@@ -97,7 +97,7 @@ export default function App() {
   const { handleTestNotification } = useNotifications({
     notificationType: settings?.notificationType || 'random',
     customNotificationMessage: settings?.customNotificationMessage || '',
-    notificationsEnabled: settings?.notificationsEnabled ?? false,
+    notificationsEnabled: settings?.notificationsEnabled ?? true,
     reminderTime: settings?.reminderTime || '20:00',
   });
 
