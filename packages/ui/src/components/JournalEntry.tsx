@@ -50,6 +50,18 @@ export function JournalEntry({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [val, setVal] = useState(entry.body);
   const [isFocused, setIsFocused] = useState(false);
+  const [showSavedStatus, setShowSavedStatus] = useState(false);
+
+  useEffect(() => {
+    if (isSaving) return;
+
+    // Show the status briefly when it finishes saving, assuming it's not the first render where nothing changed
+    if (entry.updatedAt !== entry.createdAt) {
+      setShowSavedStatus(true);
+      const timer = setTimeout(() => setShowSavedStatus(false), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [entry.updatedAt, isSaving, entry.createdAt]);
 
   const placeholder = useMemo(() => {
     if (placeholderIndex !== undefined) {
@@ -84,7 +96,7 @@ export function JournalEntry({
         textarea.style.height = textarea.scrollHeight + 'px';
       }
     }
-  }, [placeholder]);
+  }, [placeholder, finalPlaceholder]);
 
   // Auto-resize logic
   useEffect(() => {
@@ -142,13 +154,24 @@ export function JournalEntry({
         paddingBottom: `${paddingY}rem`,
       }}
     >
-      <p className="entry-date">
-        {new Date(entry.date + 'T00:00:00').toLocaleDateString('en-US', {
-          weekday: 'long',
-          month: 'long',
-          day: 'numeric',
-        })}
-      </p>
+      <div className="flex items-center w-full mb-1">
+        <p className="entry-date !leading-none" style={{ margin: 0, padding: 0 }}>
+          {new Date(entry.date + 'T00:00:00').toLocaleDateString('en-US', {
+            weekday: 'long',
+            month: 'long',
+            day: 'numeric',
+          })}
+        </p>
+        <span
+          className={`leading-none transition-opacity duration-500 pointer-events-none mt-[2px] ${isSaving || showSavedStatus ? 'opacity-100' : 'opacity-0'}`}
+          style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem', marginLeft: '0.75rem' }}
+        >
+          {isSaving
+            ? '—\u00A0\u00A0Saving...'
+            : `—\u00A0\u00A0Saved ${new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: 'numeric', second: '2-digit' }).format(new Date(entry.updatedAt))}`
+          }
+        </span>
+      </div>
       <div className="relative w-full">
         {/* Background Layer: Shows search highlights if active */}
         {(searchQuery || (entry.isMissing && !val.trim() && !isFocused)) && (
