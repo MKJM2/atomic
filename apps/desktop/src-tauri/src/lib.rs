@@ -75,8 +75,10 @@ async fn schedule_daily_reminder(
             match app
                 .notification()
                 .builder()
+                .channel_id("atomic-reminders")
                 .title("Atomic")
                 .body(&body)
+                .sound("default")
                 .show()
             {
                 Ok(_) => tracing::info!("[FIRE] Notification .show() succeeded"),
@@ -156,8 +158,10 @@ async fn schedule_test_notification(
         match app
             .notification()
             .builder()
+            .channel_id("atomic-reminders")
             .title("Atomic")
             .body("Test notification — your scheduler works! 🎉")
+            .sound("default")
             .show()
         {
             Ok(_) => tracing::info!("[TEST-FIRE] Notification .show() succeeded"),

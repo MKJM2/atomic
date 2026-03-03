@@ -28,6 +28,8 @@ async function ensureChannel() {
             description: 'Daily journal reminder notifications',
             importance: Importance.High,
             visibility: Visibility.Public,
+            sound: 'default',
+            lights: true,
             vibration: true,
         });
     } catch (e) {
@@ -70,6 +72,8 @@ export function useNotifications({
                 title: 'atomic',
                 body: body,
                 channelId: CHANNEL_ID,
+                sound: 'default',
+                autoCancel: true,
             });
         }
     }, [notificationType, customNotificationMessage]);
