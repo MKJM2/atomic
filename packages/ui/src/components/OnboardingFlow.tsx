@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { AtomicLogo } from './Icons';
 
 interface OnboardingFlowProps {
     isDarkMode: boolean;
@@ -89,30 +90,7 @@ function WelcomePage({ onNext }: { onNext: () => void }) {
     return (
         <div className="onboarding-content">
             <div className="onboarding-icon">
-                <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 200 200"
-                    width="120"
-                    height="120"
-                    role="img"
-                    aria-labelledby="atomic-logo-title"
-                >
-                    <title id="atomic-logo-title">Atomic Journal Logo</title>
-                    <circle cx="100" cy="100" r="65" stroke="currentColor" strokeWidth="2.5" fill="none" opacity="0.3" />
-                    <circle cx="100" cy="100" r="10" fill="currentColor" />
-                    <circle r="6" fill="currentColor" opacity="0.6">
-                        <animateMotion dur="8s" repeatCount="indefinite" rotate="auto">
-                            <mpath href="#onboardingOrbitPath" />
-                        </animateMotion>
-                    </circle>
-                    <defs>
-                        <path
-                            id="onboardingOrbitPath"
-                            d="M 165 100 a 65 65 0 1 1 -130 0 a 65 65 0 1 1 130 0"
-                            fill="none"
-                        />
-                    </defs>
-                </svg>
+                <AtomicLogo />
             </div>
             <h1 className="onboarding-title">Atomic</h1>
             <p className="onboarding-subtitle">A sentence a day.</p>

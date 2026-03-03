@@ -51,7 +51,45 @@ export const SettingsIcon = ({ className, size = 20 }: IconProps) => (
         L39 18 L42 8
         Z
       "/>
-      <circle cx="50" cy="50" r="18"/>
+      <circle cx="50" cy="50" r="18" />
     </g>
   </svg>
 );
+
+export interface AtomicLogoProps extends IconProps {
+  spinning?: boolean;
+}
+
+export const AtomicLogo = ({ className, size = 120, spinning = false }: AtomicLogoProps) => {
+  // Use a faster orbit when spinning
+  const dur = spinning ? "1.5s" : "8s";
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 200 200"
+      width={size}
+      height={size}
+      role="img"
+      aria-labelledby="atomic-logo-title"
+      className={className}
+    >
+      <title id="atomic-logo-title">Atomic Journal Logo</title>
+      <circle cx="100" cy="100" r="65" stroke="currentColor" strokeWidth="2.5" fill="none" opacity="0.3" />
+      {/* Proton - Made much larger */}
+      <circle cx="100" cy="100" r="20" fill="currentColor" />
+      {/* Electron - Made much larger */}
+      <circle r="12" fill="currentColor" opacity="0.6">
+        <animateMotion dur={dur} repeatCount="indefinite" rotate="auto">
+          <mpath href="#atomicOrbitPath" />
+        </animateMotion>
+      </circle>
+      <defs>
+        <path
+          id="atomicOrbitPath"
+          d="M 165 100 a 65 65 0 1 1 -130 0 a 65 65 0 1 1 130 0"
+          fill="none"
+        />
+      </defs>
+    </svg>
+  );
+};
