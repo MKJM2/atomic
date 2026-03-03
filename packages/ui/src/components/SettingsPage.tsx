@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 
 export type LayoutMode = 'minimalist' | 'default' | 'dense';
 export type NotificationType = 'random' | 'custom';
@@ -28,7 +28,7 @@ interface SettingsPageProps {
   onToggleAutoStart: (enabled: boolean) => void;
   onSeedData?: () => Promise<void>;
   onOpenLogs?: () => void;
-  onCheckForUpdates: () => void;
+  onCheckForUpdates: () => Promise<'found' | 'none' | 'error'>;
   appVersion: string;
   onClose: () => void;
 }
@@ -64,6 +64,29 @@ export function SettingsPage({
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const isSpacingDisabled = layoutMode === 'minimalist';
+
+  // Update check feedback
+  const [updateStatus, setUpdateStatus] = useState<string | null>(null);
+  const [isChecking, setIsChecking] = useState(false);
+
+  const handleCheckForUpdates = useCallback(async () => {
+    setIsChecking(true);
+    setUpdateStatus(null);
+    const result = await onCheckForUpdates();
+    setIsChecking(false);
+    if (result === 'none') {
+      setUpdateStatus('You\'re all set — no updates available.');
+    } else if (result === 'error') {
+      setUpdateStatus('Couldn\'t check for updates right now.');
+    }
+    // 'found' → the UpdateBanner will show, no inline message needed
+  }, [onCheckForUpdates]);
+
+  useEffect(() => {
+    if (!updateStatus) return;
+    const id = setTimeout(() => setUpdateStatus(null), 4000);
+    return () => clearTimeout(id);
+  }, [updateStatus]);
 
   // Live countdown timer for next notification
   const [countdown, setCountdown] = useState<string | null>(null);
@@ -405,9 +428,16 @@ export function SettingsPage({
         <footer className="settings-footer">
           <span className="app-version">Atomic v{appVersion}</span>
           <span className="footer-dot">•</span>
-          <button className="check-updates-link" onClick={onCheckForUpdates}>
-            Check for Updates
+          <button
+            className="check-updates-link"
+            onClick={handleCheckForUpdates}
+            disabled={isChecking}
+          >
+            {isChecking ? 'Checking…' : 'Check for Updates'}
           </button>
+          {updateStatus && (
+            <span className="update-status-msg">{updateStatus}</span>
+          )}
         </footer>
       </div>
     </div>

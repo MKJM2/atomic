@@ -10,7 +10,7 @@ export interface UpdateState {
   downloadProgress: number; // 0–100
   startUpdate: () => void;
   dismissUpdate: () => void;
-  checkForUpdates: () => Promise<void>;
+  checkForUpdates: () => Promise<'found' | 'none' | 'error'>;
 }
 
 export function useUpdater(): UpdateState {
@@ -21,7 +21,7 @@ export function useUpdater(): UpdateState {
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [pendingUpdate, setPendingUpdate] = useState<Update | null>(null);
 
-  const checkForUpdates = useCallback(async (manual = false) => {
+  const checkForUpdates = useCallback(async (): Promise<'found' | 'none' | 'error'> => {
     try {
       const update = await check();
       if (update) {
@@ -32,13 +32,13 @@ export function useUpdater(): UpdateState {
         setUpdateVersion(update.version);
         setUpdateBody(update.body || '');
         setUpdateAvailable(true);
-      } else if (manual) {
-        // If manually triggered and no update, we could theoretically show a toast here.
-        // For now, it will just do nothing visually, or we could add another state piece.
-        console.log('No updates available.');
+        return 'found';
+      } else {
+        return 'none';
       }
     } catch (error) {
       console.error('Failed to check for updates:', error);
+      return 'error';
     }
   }, []);
 

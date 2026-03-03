@@ -1054,6 +1054,7 @@ body,
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-wrap: wrap;
   gap: 0.5rem;
   padding: 1rem 1.5rem 1.25rem;
   border-top: 1px solid var(--color-border);
@@ -1084,4 +1085,26 @@ body,
 
 .check-updates-link:hover {
   color: var(--color-text-primary);
+}
+
+@keyframes statusFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.update-status-msg {
+  display: block;
+  width: 100%;
+  text-align: center;
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+  margin-top: 0.375rem;
+  animation: statusFadeIn 0.3s ease-out both;
 }

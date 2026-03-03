@@ -280,7 +280,7 @@ export default function App() {
       {isSettingsOpen && (
         <SettingsPage
           appVersion={appVersion}
-          onCheckForUpdates={() => checkForUpdates()}
+          onCheckForUpdates={checkForUpdates}
           onOpenLogs={handleOpenLogs}
           onSeedData={onSeedData}
           settings={settings}
