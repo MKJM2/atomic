@@ -61,21 +61,24 @@ Configure these in **Settings → Secrets and variables → Actions**:
 
 ### Release Process
 
-The CI/CD pipeline is triggered by git tags matching the pattern `app-v*` (e.g., `app-v0.1.0`). To perform a release:
+The CI/CD pipeline is triggered by git tags matching the pattern `app-v*` (e.g., `app-v0.2.2`). To perform a release:
 
-1. **Bump Version**: Update the `version` field in `apps/desktop/src-tauri/tauri.conf.json`.
+1. **Bump Version**: Update the `version` field in the following files to match exactly:
+   - `apps/desktop/src-tauri/tauri.conf.json`
+   - `apps/desktop/src-tauri/Cargo.toml`
+   - `apps/desktop/package.json`
+   - `package.json` (workspace root)
 
 2. **Commit Changes**: Push the version bump to `main`:
    ```bash
-   git add apps/desktop/src-tauri/tauri.conf.json
-   git commit -m "release: v0.2.0"
+   git commit -am "release: v0.2.2"
    git push origin main
    ```
 
-3. **Tag and Push**: Create a new git tag and push it to the repository:
+3. **Tag and Push**: Create a new git tag matching the version and push it:
    ```bash
-   git tag app-v0.2.0
-   git push origin app-v0.2.0
+   git tag app-v0.2.2
+   git push origin app-v0.2.2
    ```
 
 4. **Monitor Build**: GitHub Actions will build artifacts for macOS (ARM + Intel) and Windows in parallel.
