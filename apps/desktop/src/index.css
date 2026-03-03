@@ -1048,3 +1048,40 @@ body,
   border-radius: 2px;
   transition: width 0.2s ease-out;
 }
+
+/* ─── Settings Footer ─── */
+.settings-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1rem 1.5rem 1.25rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.app-version {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.footer-dot {
+  font-size: 0.5rem;
+  color: var(--color-text-muted);
+  opacity: 0.5;
+}
+
+.check-updates-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color 0.2s;
+}
+
+.check-updates-link:hover {
+  color: var(--color-text-primary);
+}

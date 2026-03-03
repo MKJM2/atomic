@@ -90,7 +90,7 @@ function WelcomePage({ onNext }: { onNext: () => void }) {
     return (
         <div className="onboarding-content">
             <div className="onboarding-icon">
-                <AtomicLogo />
+                <AtomicLogo size={240} />
             </div>
             <h1 className="onboarding-title">Atomic</h1>
             <p className="onboarding-subtitle">A sentence a day.</p>

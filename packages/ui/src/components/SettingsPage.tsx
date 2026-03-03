@@ -28,6 +28,8 @@ interface SettingsPageProps {
   onToggleAutoStart: (enabled: boolean) => void;
   onSeedData?: () => Promise<void>;
   onOpenLogs?: () => void;
+  onCheckForUpdates: () => void;
+  appVersion: string;
   onClose: () => void;
 }
 
@@ -44,6 +46,8 @@ export function SettingsPage({
   onResetOnboarding,
   onToggleAutoStart,
   onOpenLogs,
+  onCheckForUpdates,
+  appVersion,
   onClose
 }: SettingsPageProps) {
   const { isDarkMode, layoutMode, fontSize, spacing, isDeveloperMode, notificationsEnabled, notificationType, customNotificationMessage, reminderTime, autoStartEnabled } = settings;
@@ -397,6 +401,14 @@ export function SettingsPage({
             )}
           </div>
         </div>
+
+        <footer className="settings-footer">
+          <span className="app-version">Atomic v{appVersion}</span>
+          <span className="footer-dot">•</span>
+          <button className="check-updates-link" onClick={onCheckForUpdates}>
+            Check for Updates
+          </button>
+        </footer>
       </div>
     </div>
   );

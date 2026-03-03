@@ -10,11 +10,13 @@ import { openPath } from '@tauri-apps/plugin-opener';
 import { appLogDir } from '@tauri-apps/api/path';
 import { enable as enableAutostart, disable as disableAutostart } from '@tauri-apps/plugin-autostart';
 import { invoke } from '@tauri-apps/api/core';
+import { getVersion } from '@tauri-apps/api/app';
 
 export default function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const [nextNotificationTime, setNextNotificationTime] = useState(0);
+  const [appVersion, setAppVersion] = useState('');
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
@@ -80,6 +82,10 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    getVersion().then(setAppVersion).catch(console.error);
+  }, []);
+
+  useEffect(() => {
     if (entries.length > 0 && activeIndex >= entries.length) {
       setActiveIndex(0);
     }
@@ -110,7 +116,7 @@ export default function App() {
     setIsSettingsOpen,
     scrollToActive,
   });
-  const { updateAvailable, updateVersion, isDownloading, downloadProgress, startUpdate, dismissUpdate } = useUpdater();
+  const { updateAvailable, updateVersion, isDownloading, downloadProgress, startUpdate, dismissUpdate, checkForUpdates } = useUpdater();
 
   const handleOpenLogs = useCallback(async () => {
     try {
@@ -273,6 +279,8 @@ export default function App() {
       </div>
       {isSettingsOpen && (
         <SettingsPage
+          appVersion={appVersion}
+          onCheckForUpdates={() => checkForUpdates()}
           onOpenLogs={handleOpenLogs}
           onSeedData={onSeedData}
           settings={settings}

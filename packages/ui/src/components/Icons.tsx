@@ -75,10 +75,8 @@ export const AtomicLogo = ({ className, size = 120, spinning = false }: AtomicLo
     >
       <title id="atomic-logo-title">Atomic Journal Logo</title>
       <circle cx="100" cy="100" r="65" stroke="currentColor" strokeWidth="2.5" fill="none" opacity="0.3" />
-      {/* Proton - Made much larger */}
       <circle cx="100" cy="100" r="20" fill="currentColor" />
-      {/* Electron - Made much larger */}
-      <circle r="12" fill="currentColor">
+      <circle r="8" fill="currentColor">
         <animateMotion dur={dur} repeatCount="indefinite" rotate="auto">
           <mpath href="#atomicOrbitPath" />
         </animateMotion>
