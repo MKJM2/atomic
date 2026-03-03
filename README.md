@@ -61,26 +61,27 @@ Configure these in **Settings → Secrets and variables → Actions**:
 
 ### Release Process
 
-1. Bump the version in `apps/desktop/src-tauri/tauri.conf.json`.
+The CI/CD pipeline is triggered by git tags matching the pattern `app-v*` (e.g., `app-v0.1.0`). To perform a release:
 
-2. Commit and push to `main`:
+1. **Bump Version**: Update the `version` field in `apps/desktop/src-tauri/tauri.conf.json`.
+
+2. **Commit Changes**: Push the version bump to `main`:
    ```bash
    git add apps/desktop/src-tauri/tauri.conf.json
    git commit -m "release: v0.2.0"
    git push origin main
    ```
 
-3. Tag and push the release:
+3. **Tag and Push**: Create a new git tag and push it to the repository:
    ```bash
    git tag app-v0.2.0
    git push origin app-v0.2.0
    ```
 
-4. GitHub Actions will build three targets in parallel:
-   - macOS ARM (`aarch64-apple-darwin`) → `.dmg`
-   - macOS Intel (`x86_64-apple-darwin`) → `.dmg`
-   - Windows x64 → `.msi` + `.exe` (NSIS)
+4. **Monitor Build**: GitHub Actions will build artifacts for macOS (ARM + Intel) and Windows in parallel.
 
-5. A **draft** GitHub Release named `Atomic v0.2.0` is created automatically with all artifacts attached. Review it and publish when ready.
+5. **Review Draft**: A **draft** release named "Atomic v0.2.0" will be created automatically in the GitHub repository. Review the release notes and artifacts, then publish it when ready.
 
-> **Tip**: To generate a signing keypair: `cargo tauri signer generate -w ~/.tauri/atomic.key`
+> [!TIP]
+> To generate a new signing keypair for updates, run:
+> `cargo tauri signer generate -w ~/.tauri/atomic.key`
