@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { JournalEntry, SettingsPage, ScrollMinimap, PLACEHOLDERS, SearchIcon, SettingsIcon, OnboardingFlow } from '@atomic/ui';
+import { JournalEntry, SettingsPage, ScrollMinimap, PLACEHOLDERS, SearchIcon, SettingsIcon, OnboardingFlow, UpdateBanner } from '@atomic/ui';
 import { useSettings } from './hooks/useSettings';
 import { useEntries } from './hooks/useEntries';
 import { useNotifications } from './hooks/useNotifications';
@@ -110,7 +110,7 @@ export default function App() {
     setIsSettingsOpen,
     scrollToActive,
   });
-  useUpdater();
+  const { updateAvailable, updateVersion, isDownloading, downloadProgress, startUpdate, dismissUpdate } = useUpdater();
 
   const handleOpenLogs = useCallback(async () => {
     try {
@@ -146,6 +146,15 @@ export default function App() {
         overscrollBehavior: isSnapEnabled ? 'none' : 'auto',
       }}
     >
+      {updateAvailable && (
+        <UpdateBanner
+          version={updateVersion}
+          isDownloading={isDownloading}
+          downloadProgress={downloadProgress}
+          onUpdate={startUpdate}
+          onDismiss={dismissUpdate}
+        />
+      )}
 
       {/* Header UI overlay */}
       <div className="fixed top-6 left-6 right-6 z-50 flex justify-end items-center pointer-events-none">

@@ -25,6 +25,7 @@
     "sql:allow-execute",
     "updater:default",
     "dialog:default",
-    "autostart:default"
+    "autostart:default",
+    "process:default"
   ]
 }

@@ -6,3 +6,4 @@ export * from './components/ScrollMinimap';
 export * from './components/HighlightedText';
 export * from './components/Icons';
 export * from './components/OnboardingFlow';
+export * from './components/UpdateBanner';

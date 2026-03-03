@@ -1,8 +1,25 @@
-import { check } from '@tauri-apps/plugin-updater';
-import { ask } from '@tauri-apps/plugin-dialog';
-import { useEffect } from 'react';
+import { check, Update } from '@tauri-apps/plugin-updater';
+import { relaunch } from '@tauri-apps/plugin-process';
+import { useState, useEffect, useCallback } from 'react';
 
-export function useUpdater() {
+export interface UpdateState {
+  updateAvailable: boolean;
+  updateVersion: string;
+  updateBody: string;
+  isDownloading: boolean;
+  downloadProgress: number; // 0–100
+  startUpdate: () => void;
+  dismissUpdate: () => void;
+}
+
+export function useUpdater(): UpdateState {
+  const [updateAvailable, setUpdateAvailable] = useState(false);
+  const [updateVersion, setUpdateVersion] = useState('');
+  const [updateBody, setUpdateBody] = useState('');
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState(0);
+  const [pendingUpdate, setPendingUpdate] = useState<Update | null>(null);
+
   useEffect(() => {
     const checkForUpdates = async () => {
       try {
@@ -11,43 +28,66 @@ export function useUpdater() {
           console.log(
             `Found update ${update.version} from ${update.date} with body ${update.body}`
           );
-          let downloaded = 0;
-          let contentLength: number | undefined = 0;
-
-          const yes = await ask(
-            `A new version (${update.version}) is available. Would you like to install it?`,
-            {
-              title: 'Update Available',
-              kind: 'info',
-              okLabel: 'Update',
-              cancelLabel: 'Later',
-            }
-          );
-
-          if (yes) {
-            await update.downloadAndInstall((event) => {
-              switch (event.event) {
-                case 'Started':
-                  contentLength = event.data.contentLength;
-                  console.log(`started downloading ${event.data.contentLength} bytes`);
-                  break;
-                case 'Progress':
-                  downloaded += event.data.chunkLength;
-                  console.log(`downloaded ${downloaded} from ${contentLength}`);
-                  break;
-                case 'Finished':
-                  console.log('download finished');
-                  break;
-              }
-            });
-          }
+          setPendingUpdate(update);
+          setUpdateVersion(update.version);
+          setUpdateBody(update.body || '');
+          setUpdateAvailable(true);
         }
       } catch (error) {
         console.error('Failed to check for updates:', error);
       }
     };
 
-    // Check for updates on mount
     checkForUpdates();
   }, []);
+
+  const startUpdate = useCallback(async () => {
+    if (!pendingUpdate) return;
+    setIsDownloading(true);
+    setDownloadProgress(0);
+
+    try {
+      let downloaded = 0;
+      let contentLength = 0;
+
+      await pendingUpdate.downloadAndInstall((event) => {
+        switch (event.event) {
+          case 'Started':
+            contentLength = event.data.contentLength ?? 0;
+            console.log(`Started downloading ${contentLength} bytes`);
+            break;
+          case 'Progress':
+            downloaded += event.data.chunkLength;
+            if (contentLength > 0) {
+              setDownloadProgress(Math.round((downloaded / contentLength) * 100));
+            }
+            break;
+          case 'Finished':
+            setDownloadProgress(100);
+            console.log('Download finished');
+            break;
+        }
+      });
+
+      // Relaunch after install
+      await relaunch();
+    } catch (error) {
+      console.error('Failed to install update:', error);
+      setIsDownloading(false);
+    }
+  }, [pendingUpdate]);
+
+  const dismissUpdate = useCallback(() => {
+    setUpdateAvailable(false);
+  }, []);
+
+  return {
+    updateAvailable,
+    updateVersion,
+    updateBody,
+    isDownloading,
+    downloadProgress,
+    startUpdate,
+    dismissUpdate,
+  };
 }
